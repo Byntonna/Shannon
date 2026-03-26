@@ -60,7 +60,7 @@ fun AboutShannonScreen() {
             ) {
                 Image(
                     painter = painterResource(R.drawable.about_shannon_logo),
-                    contentDescription = "Shannon logo",
+                    contentDescription = context.getString(R.string.about_logo_content_description),
                     modifier = Modifier
                         .size(96.dp)
                         .clip(RoundedCornerShape(24.dp)),
@@ -73,7 +73,7 @@ fun AboutShannonScreen() {
                     ),
                 )
                 Text(
-                    text = "Network diagnostics toolkit for checking connectivity, protocols, TLS, DNS, and possible network filtering.",
+                    text = context.getString(R.string.about_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -88,22 +88,22 @@ fun AboutShannonScreen() {
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(
-                    text = "Build and links",
+                    text = context.getString(R.string.about_build_and_links),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                     ),
                 )
                 AboutLine(
-                    label = "Version",
+                    label = context.getString(R.string.about_version),
                     value = versionName,
                 )
                 AboutLinkLine(
-                    label = "GitHub",
+                    label = context.getString(R.string.about_github),
                     value = ShannonGithubUrl,
                     onClick = { uriHandler.openUri(ShannonGithubUrl) },
                     onLongClick = {
                         clipboardManager.setText(AnnotatedString(ShannonGithubUrl))
-                        Toast.makeText(context, "GitHub URL copied", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.about_github_copied), Toast.LENGTH_SHORT).show()
                     },
                 )
                 Button(
@@ -119,7 +119,7 @@ fun AboutShannonScreen() {
                         vertical = 14.dp,
                     ),
                 ) {
-                    Text("Open GitHub ↗")
+                    Text(context.getString(R.string.about_open_github))
                 }
             }
         }
@@ -177,7 +177,7 @@ private fun AboutLinkLine(
             ),
         )
         Text(
-            text = "Tap to open, long press to copy",
+            text = LocalContext.current.getString(R.string.about_link_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

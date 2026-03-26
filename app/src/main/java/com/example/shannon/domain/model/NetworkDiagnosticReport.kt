@@ -1,9 +1,9 @@
 package com.example.shannon.domain.model
 
-enum class ReportFormat(val title: String, val extension: String) {
-    Json("JSON", "json"),
-    Markdown("Markdown", "md"),
-    Text("Text", "txt"),
+enum class ReportFormat(val extension: String) {
+    Json("json"),
+    Markdown("md"),
+    Text("txt"),
 }
 
 data class NetworkDiagnosticReport(

@@ -27,7 +27,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.subtitleResId
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.ConnectivityStepResult
 import com.example.shannon.domain.model.ConnectivityTargetPreset
 import com.example.shannon.domain.model.ConnectivityTestResult
@@ -43,6 +47,7 @@ fun ConnectivityTestScreen(
     onRefreshNetwork: () -> Unit,
     onSelectTargetPreset: (ConnectivityTargetPreset) -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,19 +68,19 @@ fun ConnectivityTestScreen(
                     onClick = onRunTest,
                     enabled = !isRunning,
                 ) {
-                    Text(if (isRunning) "Running..." else "Run test")
+                    Text(context.getString(if (isRunning) R.string.action_running else R.string.connectivity_run_test))
                 }
                 Button(
                     onClick = onRefreshNetwork,
                     enabled = !isRunning,
                 ) {
-                    Text("Refresh network")
+                    Text(context.getString(R.string.action_refresh_network))
                 }
             }
             when {
                 isRunning && testResult == null -> CircularProgressIndicator()
                 testResult != null || isRunning -> ResultList(result = testResult, isRunning = isRunning)
-                else -> PlaceholderCard(text = "Run the test to see results.")
+                else -> PlaceholderCard(text = context.getString(R.string.connectivity_placeholder))
             }
         }
     }
@@ -87,6 +92,7 @@ private fun TargetPresetCard(
     testResult: ConnectivityTestResult?,
     onSelectTargetPreset: (ConnectivityTargetPreset) -> Unit,
 ) {
+    val context = LocalContext.current
     var expanded by rememberSaveable { mutableStateOf(false) }
 
     DiagnosticsSectionSurface(
@@ -101,29 +107,31 @@ private fun TargetPresetCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Target preset",
+                    text = context.getString(R.string.connectivity_target_preset),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = selectedTargetPreset.title,
+                    text = context.getString(selectedTargetPreset.titleResId()),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = testResult?.let { "Last run used: ${it.endpointLabel}" } ?: "No runs yet",
+                    text = testResult?.let {
+                        context.getString(R.string.connectivity_last_run_used_value, it.endpointLabel)
+                    } ?: context.getString(R.string.connectivity_no_runs_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "Hide" else "Show")
+                Text(context.getString(if (expanded) R.string.action_hide else R.string.action_show))
             }
         }
 
         AnimatedVisibility(visible = expanded) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = selectedTargetPreset.subtitle,
+                    text = context.getString(selectedTargetPreset.subtitleResId()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -135,13 +143,13 @@ private fun TargetPresetCard(
                         FilterChip(
                             selected = preset == selectedTargetPreset,
                             onClick = { onSelectTargetPreset(preset) },
-                            label = { Text(preset.title) },
+                            label = { Text(context.getString(preset.titleResId())) },
                         )
                     }
                 }
                 selectedTargetPreset.endpoints.forEachIndexed { index, endpoint ->
                     EndpointLine(
-                        label = if (index == 0) "Primary" else "Fallback",
+                        label = context.getString(if (index == 0) R.string.connectivity_primary else R.string.connectivity_fallback),
                         title = endpoint.label,
                         url = endpoint.url,
                     )
@@ -149,13 +157,13 @@ private fun TargetPresetCard(
                 testResult?.let { result ->
                     HorizontalDivider()
                     EndpointLine(
-                        label = "Last run used",
+                        label = context.getString(R.string.connectivity_last_run_used),
                         title = result.endpointLabel,
                         url = result.endpointUrl,
                     )
                     if (result.fallbackUsed) {
                         Text(
-                            text = result.fallbackReason ?: "Fallback endpoint was used",
+                            text = result.fallbackReason ?: context.getString(R.string.connectivity_fallback_used),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -192,6 +200,7 @@ private fun EndpointLine(
 
 @Composable
 private fun ResultList(result: ConnectivityTestResult?, isRunning: Boolean) {
+    val context = LocalContext.current
     val stepMap = result?.steps.orEmpty().associateBy { it.stage }
     val hasCompletedRun = result != null
 
@@ -199,7 +208,7 @@ private fun ResultList(result: ConnectivityTestResult?, isRunning: Boolean) {
         if (isRunning) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                Text("Updating results...", style = MaterialTheme.typography.bodyMedium)
+                Text(context.getString(R.string.connectivity_updating_results), style = MaterialTheme.typography.bodyMedium)
             }
         }
         ConnectivityStages.forEachIndexed { index, stage ->
@@ -215,7 +224,7 @@ private fun ResultList(result: ConnectivityTestResult?, isRunning: Boolean) {
         }
         result?.let {
             Text(
-                text = "Checked at ${it.checkedAt}",
+                text = context.getString(R.string.checked_at_value, it.checkedAt),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -230,11 +239,12 @@ private fun StepRow(
     isRunning: Boolean,
     hasCompletedRun: Boolean,
 ) {
+    val context = LocalContext.current
     val statusText = when {
         step != null -> step.summary
-        isRunning -> "Pending..."
-        hasCompletedRun -> "Skipped because a previous step failed"
-        else -> "Not run yet"
+        isRunning -> context.getString(R.string.status_pending)
+        hasCompletedRun -> context.getString(R.string.connectivity_skipped_after_failure)
+        else -> context.getString(R.string.status_not_run_yet)
     }
 
     Row(

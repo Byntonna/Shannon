@@ -29,11 +29,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.shannon.R
+import com.example.shannon.millisecondsText
+import com.example.shannon.portScanSummaryText
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.DnsAnalysisStatus
 import com.example.shannon.domain.model.HomeDashboardStatusKey
 import com.example.shannon.domain.model.HomeDashboardStatusTone
@@ -75,12 +79,13 @@ fun DiagnosticsHomeScreen(
     onOpenWebsiteAccessibility: () -> Unit,
     onOpenAboutShannon: () -> Unit,
 ) {
+    val context = LocalContext.current
     val overviewGroup = listOf(
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_lan),
             iconBackground = IconBlue,
-            title = "Network overview",
-            subtitle = "Network type, IP addresses, DNS, validated, metered",
+            title = context.getString(R.string.home_overview_title),
+            subtitle = context.getString(R.string.home_overview_subtitle),
             onClick = onOpenOverview,
         ),
     )
@@ -88,46 +93,46 @@ fun DiagnosticsHomeScreen(
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_wifi),
             iconBackground = IconPink,
-            title = "Connectivity test",
-            subtitle = "DNS, TCP, TLS, and HTTP checks for a target endpoint",
+            title = context.getString(R.string.home_connectivity_title),
+            subtitle = context.getString(R.string.home_connectivity_subtitle),
             status = connectivityStatus(uiState),
             onClick = onOpenConnectivityTest,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_internet),
             iconBackground = IconPink,
-            title = "Website accessibility",
-            subtitle = "Check popular internet services across DNS, TCP, TLS, and HTTP stages",
+            title = context.getString(R.string.home_websites_title),
+            subtitle = context.getString(R.string.home_websites_subtitle),
             onClick = onOpenWebsiteAccessibility,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_dns),
             iconBackground = IconIndigo,
-            title = "DNS analysis",
-            subtitle = "Compare system and public DNS resolvers",
+            title = context.getString(R.string.home_dns_title),
+            subtitle = context.getString(R.string.home_dns_subtitle),
             status = dnsStatus(uiState),
             onClick = onOpenDnsAnalysis,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_hub),
             iconBackground = IconPurple,
-            title = "Protocol analysis",
-            subtitle = "HTTP versions, WebSocket, and DPI heuristics",
+            title = context.getString(R.string.home_protocol_title),
+            subtitle = context.getString(R.string.home_protocol_subtitle),
             onClick = onOpenProtocolAnalysis,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_locked),
             iconBackground = IconPurple,
-            title = "TLS analysis",
-            subtitle = "TLS version, cipher suite, ALPN, certificate issuer, fingerprint",
+            title = context.getString(R.string.home_tls_title),
+            subtitle = context.getString(R.string.home_tls_subtitle),
             status = tlsStatus(uiState),
             onClick = onOpenTlsAnalysis,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_account_group),
             iconBackground = IconPurple,
-            title = "SNI filtering and MITM",
-            subtitle = "Compare normal SNI, alternative SNI, no SNI, and random SNI behavior",
+            title = context.getString(R.string.home_sni_title),
+            subtitle = context.getString(R.string.home_sni_subtitle),
             status = sniStatus(uiState),
             onClick = onOpenSniMitmAnalysis,
         ),
@@ -136,24 +141,24 @@ fun DiagnosticsHomeScreen(
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_magnify),
             iconBackground = IconPeach,
-            title = "Port scan",
-            subtitle = "Single TCP/UDP port checks and quick scans",
+            title = context.getString(R.string.home_port_scan_title),
+            subtitle = context.getString(R.string.home_port_scan_subtitle),
             status = portScanStatus(uiState),
             onClick = onOpenPortScan,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_ping_pong),
             iconBackground = IconPeach,
-            title = "Ping diagnostics",
-            subtitle = "Latency, jitter, packet loss",
+            title = context.getString(R.string.home_ping_title),
+            subtitle = context.getString(R.string.home_ping_subtitle),
             status = pingStatus(uiState),
             onClick = onOpenPingDiagnostics,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_routes),
             iconBackground = IconPeach,
-            title = "Traceroute diagnostics",
-            subtitle = "Hop path, IP addresses, hostnames, latency, and timeouts",
+            title = context.getString(R.string.home_traceroute_title),
+            subtitle = context.getString(R.string.home_traceroute_subtitle),
             status = tracerouteStatus(uiState),
             onClick = onOpenTracerouteDiagnostics,
         ),
@@ -162,15 +167,15 @@ fun DiagnosticsHomeScreen(
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_export_variant),
             iconBackground = IconSage,
-            title = "Report export",
-            subtitle = "Generate and share a diagnostic report",
+            title = context.getString(R.string.home_report_export_title),
+            subtitle = context.getString(R.string.home_report_export_subtitle),
             onClick = onOpenReportExport,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_information_outline),
             iconBackground = IconSage,
-            title = "About Shannon",
-            subtitle = "Application information, version, and project details",
+            title = context.getString(R.string.home_about_title),
+            subtitle = context.getString(R.string.home_about_subtitle),
             onClick = onOpenAboutShannon,
         ),
     )
@@ -377,74 +382,84 @@ private fun statusColor(tone: HomeEntryTone): Color = when (tone) {
     HomeEntryTone.Neutral  -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
+@Composable
 private fun connectivityStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val result = uiState.testResult
     if (result == null) {
         return persistedStatus(uiState, HomeDashboardStatusKey.ConnectivityTest)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
     val failedStep = result.steps.firstOrNull { !it.success }
     return if (failedStep == null) {
-        HomeEntryStatus("OK", HomeEntryTone.Positive)
+        HomeEntryStatus(context.getString(R.string.status_ok), HomeEntryTone.Positive)
     } else {
         HomeEntryStatus(failedStep.stage, HomeEntryTone.Warning)
     }
 }
 
+@Composable
 private fun dnsStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val result = uiState.dnsAnalysisResult
     if (result == null) {
         return persistedStatus(uiState, HomeDashboardStatusKey.DnsAnalysis)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
     return when (result.status) {
-        DnsAnalysisStatus.Ok           -> HomeEntryStatus("OK", HomeEntryTone.Positive)
-        DnsAnalysisStatus.CdnVariation -> HomeEntryStatus("Variation", HomeEntryTone.Neutral)
-        DnsAnalysisStatus.Suspicious   -> HomeEntryStatus("Suspicious", HomeEntryTone.Warning)
-        DnsAnalysisStatus.Blocked      -> HomeEntryStatus("Blocked", HomeEntryTone.Error)
+        DnsAnalysisStatus.Ok           -> HomeEntryStatus(context.getString(R.string.status_ok), HomeEntryTone.Positive)
+        DnsAnalysisStatus.CdnVariation -> HomeEntryStatus(context.getString(R.string.dns_status_variation), HomeEntryTone.Neutral)
+        DnsAnalysisStatus.Suspicious   -> HomeEntryStatus(context.getString(R.string.status_suspicious), HomeEntryTone.Warning)
+        DnsAnalysisStatus.Blocked      -> HomeEntryStatus(context.getString(R.string.status_blocked), HomeEntryTone.Error)
     }
 }
 
+@Composable
 private fun tlsStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val result = uiState.tlsAnalysisResult
     if (result == null) {
         return persistedStatus(uiState, HomeDashboardStatusKey.TlsAnalysis)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
     return when (result.status) {
-        TlsAnalysisHeuristicStatus.NoTlsAnomalies           -> HomeEntryStatus("OK", HomeEntryTone.Positive)
-        TlsAnalysisHeuristicStatus.UnusualCertificateChain  -> HomeEntryStatus("Chain", HomeEntryTone.Warning)
-        TlsAnalysisHeuristicStatus.TlsDowngradeSuspected    -> HomeEntryStatus("Downgrade", HomeEntryTone.Warning)
-        TlsAnalysisHeuristicStatus.TlsInterceptionSuspected -> HomeEntryStatus("Interception", HomeEntryTone.Warning)
-        TlsAnalysisHeuristicStatus.Inconclusive             -> HomeEntryStatus("Inconclusive", HomeEntryTone.Neutral)
+        TlsAnalysisHeuristicStatus.NoTlsAnomalies -> HomeEntryStatus(context.getString(R.string.status_ok), HomeEntryTone.Positive)
+        TlsAnalysisHeuristicStatus.UnusualCertificateChain -> HomeEntryStatus(context.getString(R.string.home_tls_status_chain), HomeEntryTone.Warning)
+        TlsAnalysisHeuristicStatus.TlsDowngradeSuspected -> HomeEntryStatus(context.getString(R.string.home_tls_status_downgrade), HomeEntryTone.Warning)
+        TlsAnalysisHeuristicStatus.TlsInterceptionSuspected -> HomeEntryStatus(context.getString(R.string.home_tls_status_interception), HomeEntryTone.Warning)
+        TlsAnalysisHeuristicStatus.Inconclusive -> HomeEntryStatus(context.getString(R.string.status_inconclusive), HomeEntryTone.Neutral)
     }
 }
 
+@Composable
 private fun sniStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val result = uiState.sniMitmAnalysisResult
     if (result == null) {
         return persistedStatus(uiState, HomeDashboardStatusKey.SniMitmAnalysis)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
     return when (result.status) {
-        SniAnalysisStatus.Normal                   -> HomeEntryStatus("Normal", HomeEntryTone.Positive)
-        SniAnalysisStatus.SniFilteringSuspected    -> HomeEntryStatus("SNI filtering", HomeEntryTone.Warning)
-        SniAnalysisStatus.TlsInterceptionSuspected -> HomeEntryStatus("TLS intercept", HomeEntryTone.Warning)
-        SniAnalysisStatus.MitmSuspected            -> HomeEntryStatus("MITM", HomeEntryTone.Error)
-        SniAnalysisStatus.Inconclusive             -> HomeEntryStatus("Inconclusive", HomeEntryTone.Neutral)
+        SniAnalysisStatus.Normal -> HomeEntryStatus(context.getString(R.string.status_normal), HomeEntryTone.Positive)
+        SniAnalysisStatus.SniFilteringSuspected -> HomeEntryStatus(context.getString(R.string.home_sni_status_filtering), HomeEntryTone.Warning)
+        SniAnalysisStatus.TlsInterceptionSuspected -> HomeEntryStatus(context.getString(R.string.home_sni_status_tls_intercept), HomeEntryTone.Warning)
+        SniAnalysisStatus.MitmSuspected -> HomeEntryStatus(context.getString(R.string.home_sni_status_mitm), HomeEntryTone.Error)
+        SniAnalysisStatus.Inconclusive -> HomeEntryStatus(context.getString(R.string.status_inconclusive), HomeEntryTone.Neutral)
     }
 }
 
+@Composable
 private fun portScanStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val results = uiState.portScanResults
     if (results.isEmpty()) {
         return persistedStatus(uiState, HomeDashboardStatusKey.PortScan)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
     if (results.size == 1) {
         val result = results.single()
         return HomeEntryStatus(
-            text = result.status.title,
+            text = context.getString(result.status.titleResId()),
             tone = when (result.status) {
                 PortStatus.OPEN             -> HomeEntryTone.Positive
                 PortStatus.CLOSED           -> HomeEntryTone.Error
@@ -470,14 +485,16 @@ private fun portScanStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
         closedCount == results.size -> HomeEntryTone.Error
         else                        -> HomeEntryTone.Neutral
     }
-    return HomeEntryStatus(parts.joinToString(" / "), tone)
+    return HomeEntryStatus(context.portScanSummaryText(openCount, closedCount, warningCount, errorCount), tone)
 }
 
+@Composable
 private fun pingStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val result = uiState.pingResult
     if (result == null) {
         return persistedStatus(uiState, HomeDashboardStatusKey.PingDiagnostics)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
     val avg = result.avgLatencyMs.roundToInt()
     val tone = when {
@@ -485,16 +502,18 @@ private fun pingStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
         avg <= 150 -> HomeEntryTone.Neutral
         else       -> HomeEntryTone.Warning
     }
-    return HomeEntryStatus("$avg ms", tone)
+    return HomeEntryStatus(context.millisecondsText(avg), tone)
 }
 
+@Composable
 private fun tracerouteStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
     val result = uiState.tracerouteResult
     if (result == null) {
         return persistedStatus(uiState, HomeDashboardStatusKey.TracerouteDiagnostics)
-            ?: HomeEntryStatus("Not run", HomeEntryTone.Neutral)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
     }
-    return HomeEntryStatus("${result.hops.size} hops", HomeEntryTone.Neutral)
+    return HomeEntryStatus(context.getString(R.string.traceroute_hops_value, result.hops.size), HomeEntryTone.Neutral)
 }
 
 private fun persistedStatus(

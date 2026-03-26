@@ -25,7 +25,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
 import com.example.shannon.domain.model.TlsAnalysisResult
 import com.example.shannon.domain.model.TlsEndpointAnalysis
@@ -37,6 +40,7 @@ fun TlsAnalysisScreen(
     isRunning: Boolean,
     onRunAnalysis: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,12 +52,12 @@ fun TlsAnalysisScreen(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Text(
-                text = "Inspect TLS handshakes, negotiated versions, cipher suites, ALPN, and certificate metadata across multiple providers.",
+                text = context.getString(R.string.tls_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(onClick = onRunAnalysis, enabled = !isRunning) {
-                Text(if (isRunning) "Running..." else "Run TLS analysis")
+                Text(context.getString(if (isRunning) R.string.action_running else R.string.tls_run_analysis))
             }
             if (isRunning && result == null) {
                 CircularProgressIndicator()
@@ -71,16 +75,17 @@ fun TlsAnalysisScreen(
 
 @Composable
 private fun TlsSummaryCard(result: TlsAnalysisResult) {
+    val context = LocalContext.current
     DiagnosticsSectionSurface {
-        Text("Interpretation", style = MaterialTheme.typography.titleMedium)
+        Text(context.getString(R.string.interpretation), style = MaterialTheme.typography.titleMedium)
         HeuristicBadge(result.status)
         if (result.observations.isEmpty()) {
             Text(
-                text = "No TLS observations were generated for this run.",
+                text = context.getString(R.string.tls_no_observations),
                 style = MaterialTheme.typography.bodyMedium,
             )
         } else {
-            Text("Observations", style = MaterialTheme.typography.titleMedium)
+            Text(context.getString(R.string.observations), style = MaterialTheme.typography.titleMedium)
             result.observations.forEachIndexed { index, observation ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(observation.title, style = MaterialTheme.typography.titleMedium)
@@ -92,7 +97,7 @@ private fun TlsSummaryCard(result: TlsAnalysisResult) {
             }
         }
         Text(
-            text = "Checked at ${result.checkedAt}",
+            text = context.getString(R.string.checked_at_value, result.checkedAt),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -127,8 +132,8 @@ private fun TlsEndpointCard(endpoint: TlsEndpointAnalysis) {
                 }
                 Text(endpoint.summary, style = MaterialTheme.typography.bodyMedium)
                 CollapsibleSectionHeader(
-                    title = "Endpoint details",
-                    subtitle = if (detailsExpanded) "Tap to collapse" else "Tap to expand",
+                    title = LocalContext.current.getString(R.string.tls_endpoint_details),
+                    subtitle = LocalContext.current.getString(if (detailsExpanded) R.string.action_tap_to_collapse else R.string.action_tap_to_expand),
                     expanded = detailsExpanded,
                     onToggle = { detailsExpanded = !detailsExpanded },
                 )
@@ -138,26 +143,26 @@ private fun TlsEndpointCard(endpoint: TlsEndpointAnalysis) {
                     exit = shrinkVertically() + fadeOut(),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        endpoint.ipAddress?.let { TechnicalLine("IP", it) }
-                        endpoint.tlsVersion?.let { TechnicalLine("TLS version", it) }
-                        endpoint.cipherSuite?.let { TechnicalLine("Cipher", it) }
-                        endpoint.alpn?.let { TechnicalLine("ALPN", it) }
+                        endpoint.ipAddress?.let { TechnicalLine(LocalContext.current.getString(R.string.overview_private_ip_short), it) }
+                        endpoint.tlsVersion?.let { TechnicalLine(LocalContext.current.getString(R.string.tls_version), it) }
+                        endpoint.cipherSuite?.let { TechnicalLine(LocalContext.current.getString(R.string.tls_cipher), it) }
+                        endpoint.alpn?.let { TechnicalLine(LocalContext.current.getString(R.string.tls_alpn), it) }
 
                         endpoint.certificate?.let { certificate ->
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Certificate", style = MaterialTheme.typography.titleMedium)
-                                TechnicalLine("Subject", certificate.subject)
-                                TechnicalLine("Issuer", certificate.issuer)
-                                TechnicalLine("Valid from", certificate.validFrom)
-                                TechnicalLine("Valid until", certificate.validUntil)
-                                TechnicalLine("Public key", certificate.publicKey)
-                                TechnicalLine("SHA-256", certificate.fingerprintSha256)
+                                Text(LocalContext.current.getString(R.string.tls_certificate), style = MaterialTheme.typography.titleMedium)
+                                TechnicalLine(LocalContext.current.getString(R.string.tls_subject), certificate.subject)
+                                TechnicalLine(LocalContext.current.getString(R.string.tls_issuer), certificate.issuer)
+                                TechnicalLine(LocalContext.current.getString(R.string.tls_valid_from), certificate.validFrom)
+                                TechnicalLine(LocalContext.current.getString(R.string.tls_valid_until), certificate.validUntil)
+                                TechnicalLine(LocalContext.current.getString(R.string.tls_public_key), certificate.publicKey)
+                                TechnicalLine(LocalContext.current.getString(R.string.tls_sha256), certificate.fingerprintSha256)
                             }
                         }
 
                         if (endpoint.certificateChain.isNotEmpty()) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Chain", style = MaterialTheme.typography.titleMedium)
+                                Text(LocalContext.current.getString(R.string.tls_chain), style = MaterialTheme.typography.titleMedium)
                                 endpoint.certificateChain.forEach { item ->
                                     Text(item, style = MaterialTheme.typography.bodyMedium)
                                 }
@@ -166,14 +171,17 @@ private fun TlsEndpointCard(endpoint: TlsEndpointAnalysis) {
 
                         if (endpoint.supportedVersions.isNotEmpty()) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Version support", style = MaterialTheme.typography.titleMedium)
+                                Text(LocalContext.current.getString(R.string.tls_version_support), style = MaterialTheme.typography.titleMedium)
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     endpoint.supportedVersions.forEach { support ->
                                         VersionChip(
-                                            label = "${support.version} ${if (support.supported) "supported" else "disabled"}",
+                                            label = LocalContext.current.getString(
+                                                if (support.supported) R.string.tls_version_supported else R.string.tls_version_disabled,
+                                                support.version,
+                                            ),
                                             enabled = support.supported,
                                         )
                                     }
@@ -182,10 +190,10 @@ private fun TlsEndpointCard(endpoint: TlsEndpointAnalysis) {
                         }
 
                         val metrics = listOfNotNull(
-                            endpoint.dnsTimeMs?.let { "DNS ${it} ms" },
-                            endpoint.tcpTimeMs?.let { "TCP ${it} ms" },
-                            endpoint.tlsTimeMs?.let { "TLS ${it} ms" },
-                            endpoint.totalTimeMs?.let { "Total ${it} ms" },
+                            endpoint.dnsTimeMs?.let { LocalContext.current.getString(R.string.metric_dns_ms, it) },
+                            endpoint.tcpTimeMs?.let { LocalContext.current.getString(R.string.metric_tcp_ms, it) },
+                            endpoint.tlsTimeMs?.let { LocalContext.current.getString(R.string.metric_tls_ms, it) },
+                            endpoint.totalTimeMs?.let { LocalContext.current.getString(R.string.metric_total_ms, it) },
                         )
                         if (metrics.isNotEmpty()) {
                             Text(
@@ -216,7 +224,7 @@ private fun TechnicalLine(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "$label:",
+            text = LocalContext.current.getString(R.string.label_with_colon, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -227,7 +235,7 @@ private fun TechnicalLine(
 @Composable
 private fun HeuristicBadge(status: TlsAnalysisHeuristicStatus) {
     DiagnosticsStatusChip(
-        text = status.title,
+        text = LocalContext.current.getString(status.titleResId()),
         tone = when (status) {
             TlsAnalysisHeuristicStatus.NoTlsAnomalies -> DiagnosticsChipTone.Positive
             TlsAnalysisHeuristicStatus.Inconclusive -> DiagnosticsChipTone.Neutral
@@ -241,7 +249,7 @@ private fun HeuristicBadge(status: TlsAnalysisHeuristicStatus) {
 @Composable
 private fun EndpointBadge(status: TlsEndpointStatus) {
     DiagnosticsStatusChip(
-        text = status.title,
+        text = LocalContext.current.getString(status.titleResId()),
         tone = when (status) {
             TlsEndpointStatus.Normal -> DiagnosticsChipTone.Positive
             TlsEndpointStatus.Failed -> DiagnosticsChipTone.Negative

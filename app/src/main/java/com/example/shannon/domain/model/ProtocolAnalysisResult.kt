@@ -1,30 +1,30 @@
 package com.example.shannon.domain.model
 
-enum class ProtocolProbeKind(val title: String) {
-    Http11("HTTP/1.1"),
-    Http2("HTTP/2"),
-    Http3("HTTP/3"),
-    WebSocket("WebSocket"),
+enum class ProtocolProbeKind {
+    Http11,
+    Http2,
+    Http3,
+    WebSocket,
 }
 
-enum class ProtocolProbeStatus(val title: String) {
-    Supported("Supported"),
-    Failed("Failed"),
-    Blocked("Blocked"),
-    Fallback("Fallback"),
-    Inconclusive("Inconclusive"),
+enum class ProtocolProbeStatus {
+    Supported,
+    Failed,
+    Blocked,
+    Fallback,
+    Inconclusive,
 }
 
-enum class ProtocolProbeErrorCategory(val title: String) {
-    DnsFailure("DNS failure"),
-    TcpFailure("TCP failure"),
-    TlsFailure("TLS failure"),
-    AlpnFailure("ALPN failure"),
-    QuicFailure("QUIC failure"),
-    HttpFailure("HTTP failure"),
-    WebSocketUpgradeFailure("WebSocket upgrade failure"),
-    Timeout("Timeout"),
-    Unknown("Unknown"),
+enum class ProtocolProbeErrorCategory {
+    DnsFailure,
+    TcpFailure,
+    TlsFailure,
+    AlpnFailure,
+    QuicFailure,
+    HttpFailure,
+    WebSocketUpgradeFailure,
+    Timeout,
+    Unknown,
 }
 
 data class ProtocolTestResult(

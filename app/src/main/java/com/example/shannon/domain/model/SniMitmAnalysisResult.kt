@@ -1,27 +1,27 @@
 package com.example.shannon.domain.model
 
-enum class SniVariantType(val title: String) {
-    NormalSni("Normal SNI"),
-    AlternativeSni("Alternative SNI"),
-    NoSni("No SNI"),
-    RandomSni("Random SNI"),
+enum class SniVariantType {
+    NormalSni,
+    AlternativeSni,
+    NoSni,
+    RandomSni,
 }
 
-enum class SniAnalysisStatus(val title: String) {
-    Normal("Normal"),
-    SniFilteringSuspected("Possible SNI filtering"),
-    TlsInterceptionSuspected("Possible TLS interception"),
-    MitmSuspected("MITM suspected"),
-    Inconclusive("Inconclusive"),
+enum class SniAnalysisStatus {
+    Normal,
+    SniFilteringSuspected,
+    TlsInterceptionSuspected,
+    MitmSuspected,
+    Inconclusive,
 }
 
-enum class SniProbeErrorCategory(val title: String) {
-    DnsFailure("DNS failure"),
-    TcpFailure("TCP failure"),
-    TlsFailure("TLS failure"),
-    RstDetected("RST detected"),
-    Timeout("Timeout"),
-    Unknown("Unknown"),
+enum class SniProbeErrorCategory {
+    DnsFailure,
+    TcpFailure,
+    TlsFailure,
+    RstDetected,
+    Timeout,
+    Unknown,
 }
 
 data class SniVariantResult(

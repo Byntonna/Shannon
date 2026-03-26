@@ -1,10 +1,10 @@
 package com.example.shannon.domain.model
 
-enum class PingPacketState(val title: String) {
-    Pending("Pending"),
-    Reply("Reply"),
-    Lost("Lost"),
-    Error("Error"),
+enum class PingPacketState {
+    Pending,
+    Reply,
+    Lost,
+    Error,
 }
 
 data class PingPacketStatus(

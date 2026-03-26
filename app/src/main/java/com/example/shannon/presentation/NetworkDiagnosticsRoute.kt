@@ -13,6 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.FileProvider
+import com.example.shannon.R
 import com.example.shannon.domain.model.ConnectivityStepResult
 import com.example.shannon.domain.model.ConnectivityTestResult
 import com.example.shannon.domain.model.ConnectivityTargetPreset
@@ -83,7 +84,7 @@ fun NetworkDiagnosticsRoute(
             viewModel.onReportShareHandled()
         }.onFailure { error ->
             viewModel.onReportShareHandled(
-                error = error.message ?: "Unable to open the share sheet",
+                error = error.message ?: context.getString(R.string.error_report_export_failed),
             )
         }
     }
@@ -464,7 +465,10 @@ private fun shareExportedReport(
         clipData = ClipData.newRawUri(file.name, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    val chooserIntent = Intent.createChooser(shareIntent, "Share report").apply {
+    val chooserIntent = Intent.createChooser(
+        shareIntent,
+        context.getString(R.string.report_share_chooser),
+    ).apply {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         if (context !is Activity) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

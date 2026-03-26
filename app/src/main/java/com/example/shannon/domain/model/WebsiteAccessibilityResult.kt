@@ -1,11 +1,11 @@
 package com.example.shannon.domain.model
 
-enum class WebsiteAccessibilityStatus(val title: String) {
-    Ok("OK"),
-    DnsBlocked("DNS blocked"),
-    TcpBlocked("TCP blocked"),
-    TlsError("TLS error"),
-    HttpError("HTTP error"),
+enum class WebsiteAccessibilityStatus {
+    Ok,
+    DnsBlocked,
+    TcpBlocked,
+    TlsError,
+    HttpError,
 }
 
 data class WebsiteAccessibilityTarget(
@@ -14,13 +14,9 @@ data class WebsiteAccessibilityTarget(
 )
 
 enum class WebsiteAccessibilityPreset(
-    val title: String,
-    val subtitle: String,
     val targets: List<WebsiteAccessibilityTarget>,
 ) {
     Popular(
-        title = "Popular",
-        subtitle = "All major services",
         targets = listOf(
             WebsiteAccessibilityTarget("Google", "https://www.google.com/generate_204"),
             WebsiteAccessibilityTarget("YouTube", "https://www.youtube.com/"),
@@ -31,8 +27,6 @@ enum class WebsiteAccessibilityPreset(
         ),
     ),
     Core(
-        title = "Core",
-        subtitle = "Foundational web services",
         targets = listOf(
             WebsiteAccessibilityTarget("Google", "https://www.google.com/generate_204"),
             WebsiteAccessibilityTarget("Wikipedia", "https://www.wikipedia.org/"),
@@ -41,8 +35,6 @@ enum class WebsiteAccessibilityPreset(
         ),
     ),
     Media(
-        title = "Media",
-        subtitle = "Video and social platforms",
         targets = listOf(
             WebsiteAccessibilityTarget("YouTube", "https://www.youtube.com/"),
             WebsiteAccessibilityTarget("Telegram", "https://web.telegram.org/"),

@@ -33,8 +33,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.subtitleResId
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.WebsiteAccessibilityPreset
 import com.example.shannon.domain.model.WebsiteAccessibilityResult
 import com.example.shannon.domain.model.WebsiteAccessibilityStatus
@@ -53,6 +57,7 @@ fun WebsiteAccessibilityScreen(
     onAddCustomTarget: () -> Unit,
     onRemoveCustomTarget: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     val displayedTargets = if (customTargets.isNotEmpty()) {
         customTargets
     } else {
@@ -71,7 +76,7 @@ fun WebsiteAccessibilityScreen(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Text(
-                text = "Check popular internet services across DNS, TCP, TLS, and HTTP stages.",
+                text = context.getString(R.string.website_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -83,12 +88,12 @@ fun WebsiteAccessibilityScreen(
                     FilterChip(
                         selected = preset == selectedPreset,
                         onClick = { onSelectPreset(preset) },
-                        label = { Text(preset.title) },
+                        label = { Text(context.getString(preset.titleResId())) },
                     )
                 }
             }
             Text(
-                text = selectedPreset.subtitle,
+                text = context.getString(selectedPreset.subtitleResId()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -96,22 +101,22 @@ fun WebsiteAccessibilityScreen(
                 value = customInput,
                 onValueChange = onCustomInputChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Custom site URL or domain") },
-                placeholder = { Text("example.com or https://example.com") },
+                label = { Text(context.getString(R.string.website_custom_site)) },
+                placeholder = { Text(context.getString(R.string.website_custom_site_placeholder)) },
                 singleLine = true,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = onAddCustomTarget, enabled = !isRunning) {
-                    Text("Add site")
+                    Text(context.getString(R.string.website_add_site))
                 }
                 Button(onClick = onRunTest, enabled = !isRunning) {
-                    Text(if (isRunning) "Running..." else "Run website test")
+                    Text(context.getString(if (isRunning) R.string.action_running else R.string.website_run_test))
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = if (showingCustomTargets) "Custom targets" else "Sites to test",
+                    text = context.getString(if (showingCustomTargets) R.string.website_custom_targets else R.string.website_sites_to_test),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 displayedTargets.forEach { target ->
@@ -132,7 +137,7 @@ fun WebsiteAccessibilityScreen(
                         }
                         if (showingCustomTargets) {
                             TextButton(onClick = { onRemoveCustomTarget(target.url) }) {
-                                Text("Remove")
+                                Text(context.getString(R.string.action_remove))
                             }
                         }
                     }
@@ -141,7 +146,7 @@ fun WebsiteAccessibilityScreen(
             when {
                 isRunning && results.isEmpty() -> CircularProgressIndicator()
                 results.isEmpty() -> Text(
-                    text = "Run the test to get live results for websites.",
+                    text = context.getString(R.string.website_placeholder),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -183,8 +188,8 @@ private fun WebsiteResultCard(result: WebsiteAccessibilityResult) {
         }
 
         CollapsibleSectionHeader(
-            title = "Diagnostics details",
-            subtitle = if (detailsExpanded) "Tap to collapse" else "Tap to expand",
+            title = LocalContext.current.getString(R.string.website_diagnostics_details),
+            subtitle = LocalContext.current.getString(if (detailsExpanded) R.string.action_tap_to_collapse else R.string.action_tap_to_expand),
             expanded = detailsExpanded,
             onToggle = { detailsExpanded = !detailsExpanded },
         )
@@ -203,7 +208,7 @@ private fun WebsiteResultCard(result: WebsiteAccessibilityResult) {
                 }
 
                 Text(
-                    text = "Checked at ${result.diagnostics.checkedAt}",
+                    text = LocalContext.current.getString(R.string.checked_at_value, result.diagnostics.checkedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -215,7 +220,7 @@ private fun WebsiteResultCard(result: WebsiteAccessibilityResult) {
 @Composable
 private fun StatusBadge(status: WebsiteAccessibilityStatus) {
     DiagnosticsStatusChip(
-        text = status.title,
+        text = LocalContext.current.getString(status.titleResId()),
         tone = when (status) {
             WebsiteAccessibilityStatus.Ok -> DiagnosticsChipTone.Positive
             WebsiteAccessibilityStatus.DnsBlocked,

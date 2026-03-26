@@ -1,17 +1,17 @@
 package com.example.shannon.domain.model
 
-enum class TlsEndpointStatus(val title: String) {
-    Normal("Normal"),
-    Failed("Failed"),
-    Inconclusive("Inconclusive"),
+enum class TlsEndpointStatus {
+    Normal,
+    Failed,
+    Inconclusive,
 }
 
-enum class TlsAnalysisHeuristicStatus(val title: String) {
-    NoTlsAnomalies("No TLS anomalies"),
-    TlsInterceptionSuspected("TLS interception suspected"),
-    UnusualCertificateChain("Unusual certificate chain"),
-    TlsDowngradeSuspected("TLS downgrade suspected"),
-    Inconclusive("Inconclusive"),
+enum class TlsAnalysisHeuristicStatus {
+    NoTlsAnomalies,
+    TlsInterceptionSuspected,
+    UnusualCertificateChain,
+    TlsDowngradeSuspected,
+    Inconclusive,
 }
 
 data class TlsVersionSupport(

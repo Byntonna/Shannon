@@ -19,8 +19,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.millisecondsText
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.PortScanIpVersion
 import com.example.shannon.domain.model.PortScanResult
 import com.example.shannon.domain.model.PortScanTransport
@@ -44,6 +48,7 @@ fun PortScanScreen(
     onRunSingleScan: () -> Unit,
     onRunQuickScan: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -58,14 +63,14 @@ fun PortScanScreen(
                 value = host,
                 onValueChange = onHostChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Host") },
+                label = { Text(context.getString(R.string.host)) },
                 singleLine = true,
             )
             OutlinedTextField(
                 value = portInput,
                 onValueChange = onPortInputChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Single port") },
+                label = { Text(context.getString(R.string.port_scan_single_port)) },
                 singleLine = true,
             )
             FlowRow(
@@ -76,7 +81,7 @@ fun PortScanScreen(
                     FilterChip(
                         selected = transport == entry,
                         onClick = { onTransportChange(entry) },
-                        label = { Text(entry.title) },
+                        label = { Text(context.getString(entry.titleResId())) },
                     )
                 }
             }
@@ -88,21 +93,21 @@ fun PortScanScreen(
                     FilterChip(
                         selected = ipVersion == entry,
                         onClick = { onIpVersionChange(entry) },
-                        label = { Text(entry.title) },
+                        label = { Text(context.getString(entry.titleResId())) },
                     )
                 }
             }
             Text(
-                text = "Quick scan ports: $QuickPortsLabel",
+                text = context.getString(R.string.port_scan_quick_ports_value, QuickPortsLabel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = onRunSingleScan, enabled = !isRunning) {
-                    Text(if (isRunning) "Running..." else "Scan port")
+                    Text(context.getString(if (isRunning) R.string.action_running else R.string.port_scan_run_single))
                 }
                 Button(onClick = onRunQuickScan, enabled = !isRunning) {
-                    Text("Quick scan")
+                    Text(context.getString(R.string.port_scan_run_quick))
                 }
             }
             if (isRunning && results.isEmpty()) {
@@ -118,15 +123,15 @@ fun PortScanScreen(
         }
 
         if (results.isEmpty()) {
-            PlaceholderCard("Run a single port scan or a quick scan to see results.")
+            PlaceholderCard(context.getString(R.string.port_scan_placeholder))
         } else {
             DiagnosticsSectionSurface {
-                Text("Port scan", style = MaterialTheme.typography.titleMedium)
-                ScanMetaLine("Host", results.first().host)
-                ScanMetaLine("Transport", results.first().transport.title)
-                ScanMetaLine("Address family", results.first().ipVersion.title)
+                Text(context.getString(R.string.screen_port_scan), style = MaterialTheme.typography.titleMedium)
+                ScanMetaLine(context.getString(R.string.host), results.first().host)
+                ScanMetaLine(context.getString(R.string.port_scan_transport), context.getString(results.first().transport.titleResId()))
+                ScanMetaLine(context.getString(R.string.port_scan_address_family), context.getString(results.first().ipVersion.titleResId()))
                 results.first().resolvedAddress?.let {
-                    ScanMetaLine("Resolved address", it)
+                    ScanMetaLine(context.getString(R.string.port_scan_resolved_address), it)
                 }
                 results.sortedBy { it.port }.forEachIndexed { index, result ->
                     PortResultRow(result)
@@ -146,7 +151,7 @@ private fun ScanMetaLine(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "$label:",
+            text = LocalContext.current.getString(R.string.label_with_colon, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -168,7 +173,7 @@ private fun PortResultRow(result: PortScanResult) {
             )
             result.latencyMs?.let {
                 Text(
-                    text = "${it} ms",
+                                        text = LocalContext.current.millisecondsText(it),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -197,7 +202,7 @@ private fun PortResultRow(result: PortScanResult) {
 @Composable
 private fun PortStatusBadge(status: PortStatus) {
     DiagnosticsStatusChip(
-        text = status.title,
+        text = LocalContext.current.getString(status.titleResId()),
         tone = when (status) {
             PortStatus.OPEN -> DiagnosticsChipTone.Positive
             PortStatus.CLOSED -> DiagnosticsChipTone.Negative

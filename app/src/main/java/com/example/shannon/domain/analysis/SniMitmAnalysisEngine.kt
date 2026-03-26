@@ -1,5 +1,7 @@
 package com.example.shannon.domain.analysis
 
+import androidx.annotation.StringRes
+import com.example.shannon.R
 import com.example.shannon.domain.model.SniAnalysisStatus
 import com.example.shannon.domain.model.SniMitmAnalysisResult
 import com.example.shannon.domain.model.SniObservation
@@ -9,7 +11,11 @@ import com.example.shannon.domain.model.SniVariantResult
 import com.example.shannon.domain.model.SniVariantType
 import java.util.Locale
 
-class SniMitmAnalysisEngine {
+class SniMitmAnalysisEngine(
+    private val stringResolver: (Int, List<Any>) -> String,
+) {
+    private fun text(@StringRes resId: Int, vararg args: Any): String = stringResolver(resId, args.toList())
+
     fun analyze(
         probeResults: List<SniProviderProbeResult>,
         checkedAt: String,
@@ -63,14 +69,14 @@ class SniMitmAnalysisEngine {
         if (strongSniFilteringPattern) {
             observations += SniObservation(
                 code = "SNI_FILTERING_PATTERN",
-                title = "Selective TLS failure on the normal SNI",
-                summary = "DNS and TCP succeeded for the baseline connection, but TLS failed only for the normal SNI while other variants still completed.",
+                title = text(R.string.sni_observation_selective_tls_failure_title),
+                summary = text(R.string.sni_observation_selective_tls_failure_summary),
             )
         } else if (mixedSniPattern) {
             observations += SniObservation(
                 code = "MIXED_SNI_BEHAVIOR",
-                title = "Mixed SNI behavior",
-                summary = "The baseline TLS handshake failed after TCP, but non-default SNI variants produced mixed outcomes that are not conclusive on their own.",
+                title = text(R.string.sni_observation_mixed_behavior_title),
+                summary = text(R.string.sni_observation_mixed_behavior_summary),
             )
         }
 
@@ -83,15 +89,15 @@ class SniMitmAnalysisEngine {
         if (baselineSucceeded && baselineUntrusted) {
             observations += SniObservation(
                 code = "BASELINE_UNTRUSTED_CHAIN",
-                title = "Baseline certificate chain was not trusted",
-                summary = "The normal SNI handshake completed, but the certificate chain did not validate against the Android system trust store.",
+                title = text(R.string.sni_observation_untrusted_chain_title),
+                summary = text(R.string.sni_observation_untrusted_chain_summary),
             )
         }
         if (baselineSucceeded && baselineHostnameMismatch) {
             observations += SniObservation(
                 code = "BASELINE_HOSTNAME_MISMATCH",
-                title = "Baseline certificate did not match the hostname",
-                summary = "The normal SNI handshake completed, but the presented certificate did not match the requested hostname.",
+                title = text(R.string.sni_observation_hostname_mismatch_title),
+                summary = text(R.string.sni_observation_hostname_mismatch_summary),
             )
         }
         if (
@@ -102,8 +108,8 @@ class SniMitmAnalysisEngine {
         ) {
             observations += SniObservation(
                 code = "REPEATED_UNTRUSTED_ISSUER",
-                title = "Same untrusted issuer seen across providers",
-                summary = "Multiple providers returned baseline certificates issued by the same untrusted authority, which is consistent with TLS interception.",
+                title = text(R.string.sni_observation_repeated_untrusted_issuer_title),
+                summary = text(R.string.sni_observation_repeated_untrusted_issuer_summary),
             )
         }
         if (
@@ -113,8 +119,8 @@ class SniMitmAnalysisEngine {
         ) {
             observations += SniObservation(
                 code = "REPEATED_SUSPICIOUS_FINGERPRINT",
-                title = "Same suspicious certificate fingerprint seen across providers",
-                summary = "Multiple providers returned the same baseline certificate fingerprint together with other unusual TLS signals.",
+                title = text(R.string.sni_observation_repeated_fingerprint_title),
+                summary = text(R.string.sni_observation_repeated_fingerprint_summary),
             )
         }
 
@@ -135,15 +141,15 @@ class SniMitmAnalysisEngine {
 
         val summary = when (status) {
             SniAnalysisStatus.SniFilteringSuspected ->
-                "The normal SNI failed after TCP while non-default SNI variants still completed, which matches a selective SNI filtering pattern."
+                text(R.string.sni_provider_summary_filtering)
             SniAnalysisStatus.TlsInterceptionSuspected ->
-                "The baseline TLS behavior showed certificate validation anomalies that are more consistent with interception than with routine CDN variance."
+                text(R.string.sni_provider_summary_tls_interception)
             SniAnalysisStatus.MitmSuspected ->
-                "Baseline certificates across providers matched a strong multi-signal MITM pattern."
+                text(R.string.sni_provider_summary_mitm)
             SniAnalysisStatus.Inconclusive ->
-                "This provider produced mixed TLS/SNI behavior that is notable, but not strong enough for a confident interference claim."
+                text(R.string.sni_provider_summary_inconclusive)
             SniAnalysisStatus.Normal ->
-                "The baseline handshake completed normally and the variant differences stayed within expected server behavior."
+                text(R.string.sni_provider_summary_normal)
         }
 
         return SniProviderAnalysis(
@@ -165,44 +171,44 @@ class SniMitmAnalysisEngine {
         if (providers.any { it.status == SniAnalysisStatus.SniFilteringSuspected }) {
             observations += SniObservation(
                 code = "SNI_FILTERING_SUSPECTED",
-                title = "Possible SNI filtering detected",
-                summary = "At least one provider failed the TLS handshake only on the normal SNI while other SNI variants still completed.",
+                title = text(R.string.sni_overall_filtering_title),
+                summary = text(R.string.sni_overall_filtering_summary),
             )
         }
         if (providers.any { it.status == SniAnalysisStatus.TlsInterceptionSuspected }) {
             observations += SniObservation(
                 code = "TLS_INTERCEPTION_SUSPECTED",
-                title = "Possible TLS interception detected",
-                summary = "At least one baseline handshake completed with certificate validation anomalies that should be reviewed alongside the raw variant details.",
+                title = text(R.string.sni_overall_tls_interception_title),
+                summary = text(R.string.sni_overall_tls_interception_summary),
             )
         }
         if (crossProviderSignals.mitmSuspected) {
             val summary = when {
                 crossProviderSignals.repeatedUntrustedIssuers.isNotEmpty() ->
-                    "Multiple providers returned baseline certificates issued by the same untrusted authority."
+                    text(R.string.sni_overall_mitm_summary_untrusted_issuer)
                 crossProviderSignals.repeatedSuspiciousFingerprints.isNotEmpty() ->
-                    "Multiple providers returned the same suspicious baseline certificate fingerprint."
+                    text(R.string.sni_overall_mitm_summary_fingerprint)
                 else ->
-                    "Multiple providers showed the same uncommon baseline certificate pattern."
+                    text(R.string.sni_overall_mitm_summary_pattern)
             }
             observations += SniObservation(
                 code = "MITM_SUSPECTED",
-                title = "MITM suspected",
+                title = text(R.string.sni_status_mitm),
                 summary = summary,
             )
         }
         if (observations.isEmpty() && providers.any { it.status == SniAnalysisStatus.Inconclusive }) {
             observations += SniObservation(
                 code = "INCONCLUSIVE",
-                title = "Inconclusive",
-                summary = "Some providers showed mixed SNI or certificate behavior, but the overall pattern was not strong enough for a reliable interference conclusion.",
+                title = text(R.string.status_inconclusive),
+                summary = text(R.string.sni_overall_inconclusive_summary),
             )
         }
         if (observations.isEmpty()) {
             observations += SniObservation(
                 code = "NO_CLEAR_SNI_INTERFERENCE",
-                title = "No clear SNI interference detected",
-                summary = "Baseline handshakes completed normally and the collected variant differences did not form a strong filtering or interception pattern.",
+                title = text(R.string.sni_overall_no_clear_interference_title),
+                summary = text(R.string.sni_overall_no_clear_interference_summary),
             )
         }
 

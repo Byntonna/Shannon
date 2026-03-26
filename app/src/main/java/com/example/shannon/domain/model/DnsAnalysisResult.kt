@@ -1,16 +1,16 @@
 package com.example.shannon.domain.model
 
-enum class DnsLookupTransport(val title: String) {
-    System("System resolver"),
-    Udp("UDP"),
-    TcpFallback("TCP fallback"),
+enum class DnsLookupTransport {
+    System,
+    Udp,
+    TcpFallback,
 }
 
-enum class DnsAnalysisStatus(val title: String) {
-    Ok("DNS OK"),
-    CdnVariation("CDN variation"),
-    Suspicious("Suspicious"),
-    Blocked("Blocked"),
+enum class DnsAnalysisStatus {
+    Ok,
+    CdnVariation,
+    Suspicious,
+    Blocked,
 }
 
 data class DnsRecordResult(

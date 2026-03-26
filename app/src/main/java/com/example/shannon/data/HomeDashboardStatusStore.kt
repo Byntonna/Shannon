@@ -1,11 +1,14 @@
 package com.example.shannon.data
 
+import android.content.Context
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.HomeDashboardStatus
 import com.example.shannon.domain.model.HomeDashboardStatusKey
 import com.example.shannon.domain.model.HomeDashboardStatusTone
 import com.example.shannon.domain.model.PortStatus
 
 class HomeDashboardStatusStore(
+    private val context: Context,
     private val dashboardStatusDao: DashboardStatusDao,
 ) {
     suspend fun loadStatuses(): Map<HomeDashboardStatusKey, HomeDashboardStatus> {
@@ -18,7 +21,9 @@ class HomeDashboardStatusStore(
             }.getOrDefault(HomeDashboardStatusTone.Neutral)
             val text = when (key) {
                 HomeDashboardStatusKey.PortScan -> {
-                    PortStatus.entries.firstOrNull { it.name == entity.textValue }?.title ?: entity.textValue
+                    PortStatus.entries.firstOrNull { it.name == entity.textValue }
+                        ?.let { context.getString(it.titleResId()) }
+                        ?: entity.textValue
                 }
                 else -> entity.textValue
             }

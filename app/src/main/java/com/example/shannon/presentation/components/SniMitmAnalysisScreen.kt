@@ -24,7 +24,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.SniAnalysisStatus
 import com.example.shannon.domain.model.SniMitmAnalysisResult
 import com.example.shannon.domain.model.SniProviderAnalysis
@@ -36,6 +39,7 @@ fun SniMitmAnalysisScreen(
     isRunning: Boolean,
     onRunAnalysis: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,12 +51,12 @@ fun SniMitmAnalysisScreen(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Text(
-                text = "Compare normal SNI, alternative SNI, no SNI, and random SNI handshakes to look for selective TLS interference and MITM signals.",
+                text = context.getString(R.string.sni_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(onClick = onRunAnalysis, enabled = !isRunning) {
-                Text(if (isRunning) "Running..." else "Run SNI and MITM analysis")
+                Text(context.getString(if (isRunning) R.string.action_running else R.string.sni_run_analysis))
             }
             if (isRunning && result == null) {
                 CircularProgressIndicator()
@@ -70,16 +74,17 @@ fun SniMitmAnalysisScreen(
 
 @Composable
 private fun SniSummaryCard(result: SniMitmAnalysisResult) {
+    val context = LocalContext.current
     DiagnosticsSectionSurface {
-        Text("Interpretation", style = MaterialTheme.typography.titleMedium)
+        Text(context.getString(R.string.interpretation), style = MaterialTheme.typography.titleMedium)
         SniStatusBadge(result.status)
         if (result.observations.isEmpty()) {
             Text(
-                text = "No high-confidence SNI or MITM observations were produced.",
+                text = context.getString(R.string.sni_no_observations),
                 style = MaterialTheme.typography.bodyMedium,
             )
         } else {
-            Text("Observations", style = MaterialTheme.typography.titleMedium)
+            Text(context.getString(R.string.observations), style = MaterialTheme.typography.titleMedium)
             result.observations.forEachIndexed { index, observation ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(observation.title, style = MaterialTheme.typography.titleMedium)
@@ -91,7 +96,7 @@ private fun SniSummaryCard(result: SniMitmAnalysisResult) {
             }
         }
         Text(
-            text = "Checked at ${result.checkedAt}",
+            text = context.getString(R.string.checked_at_value, result.checkedAt),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -123,8 +128,8 @@ private fun SniProviderCard(provider: SniProviderAnalysis) {
         }
         Text(provider.summary, style = MaterialTheme.typography.bodyMedium)
         CollapsibleSectionHeader(
-            title = "Provider details",
-            subtitle = "${provider.variants.size} variant(s)",
+            title = LocalContext.current.getString(R.string.sni_provider_details),
+            subtitle = LocalContext.current.getString(R.string.sni_variants_count, provider.variants.size),
             expanded = detailsExpanded,
             onToggle = { detailsExpanded = !detailsExpanded },
         )
@@ -157,7 +162,8 @@ private fun SniProviderCard(provider: SniProviderAnalysis) {
 
 @Composable
 private fun VariantCard(result: SniVariantResult) {
-    var detailsExpanded by rememberSaveable(result.variant.title, result.sniValue, result.ipAddress) {
+    val context = LocalContext.current
+    var detailsExpanded by rememberSaveable(result.variant.name, result.sniValue, result.ipAddress) {
         mutableStateOf(false)
     }
     Column(
@@ -166,8 +172,8 @@ private fun VariantCard(result: SniVariantResult) {
     ) {
         Text(variantOutcomeSummary(result), style = MaterialTheme.typography.bodyMedium)
         CollapsibleSectionHeader(
-            title = result.variant.title,
-            subtitle = if (detailsExpanded) "Tap to collapse" else "Tap to expand",
+            title = context.getString(result.variant.titleResId()),
+            subtitle = context.getString(if (detailsExpanded) R.string.action_tap_to_collapse else R.string.action_tap_to_expand),
             expanded = detailsExpanded,
             onToggle = { detailsExpanded = !detailsExpanded },
         )
@@ -178,45 +184,45 @@ private fun VariantCard(result: SniVariantResult) {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 result.sniValue?.let {
-                    TechnicalLine("SNI", it)
-                } ?: TechnicalLine("SNI", "Not sent")
-                result.ipAddress?.let { TechnicalLine("IP", it) }
-                TechnicalLine("DNS", if (result.dnsResolved) "Resolved" else "Failed")
+                    TechnicalLine(context.getString(R.string.sni_label), it)
+                } ?: TechnicalLine(context.getString(R.string.sni_label), context.getString(R.string.sni_not_sent))
+                result.ipAddress?.let { TechnicalLine(context.getString(R.string.overview_private_ip_short), it) }
+                TechnicalLine(context.getString(R.string.stage_dns), if (result.dnsResolved) context.getString(R.string.sni_dns_resolved) else context.getString(R.string.protocol_status_failed))
                 TechnicalLine(
-                    "TCP",
+                    context.getString(R.string.stage_tcp),
                     when {
-                        result.tcpConnected -> "Connected"
-                        result.dnsResolved -> "Failed"
-                        else -> "Not attempted"
+                        result.tcpConnected -> context.getString(R.string.sni_tcp_connected)
+                        result.dnsResolved -> context.getString(R.string.protocol_status_failed)
+                        else -> context.getString(R.string.sni_not_attempted)
                     },
                 )
                 TechnicalLine(
-                    "TLS",
+                    context.getString(R.string.stage_tls),
                     when {
-                        result.tlsHandshakeSucceeded -> "Handshake succeeded"
-                        result.tcpConnected -> "Handshake failed"
-                        else -> "Not attempted"
+                        result.tlsHandshakeSucceeded -> context.getString(R.string.sni_tls_handshake_succeeded)
+                        result.tcpConnected -> context.getString(R.string.sni_tls_handshake_failed)
+                        else -> context.getString(R.string.sni_not_attempted)
                     },
                 )
-                result.tlsVersion?.let { TechnicalLine("TLS version", it) }
-                result.cipherSuite?.let { TechnicalLine("Cipher", it) }
-                result.alpn?.let { TechnicalLine("ALPN", it) }
+                result.tlsVersion?.let { TechnicalLine(context.getString(R.string.tls_version), it) }
+                result.cipherSuite?.let { TechnicalLine(context.getString(R.string.tls_cipher), it) }
+                result.alpn?.let { TechnicalLine(context.getString(R.string.tls_alpn), it) }
                 result.certificate?.let { cert ->
-                    TechnicalLine("Certificate subject", cert.subject)
-                    TechnicalLine("Issuer", cert.issuer)
-                    TechnicalLine("SHA-256", cert.fingerprintSha256)
+                    TechnicalLine(context.getString(R.string.tls_certificate_subject), cert.subject)
+                    TechnicalLine(context.getString(R.string.tls_issuer), cert.issuer)
+                    TechnicalLine(context.getString(R.string.tls_sha256), cert.fingerprintSha256)
                 }
                 result.certificateMatchesRequestedHost?.let {
-                    TechnicalLine("Hostname match", if (it) "Matched requested host" else "Did not match requested host")
+                    TechnicalLine(context.getString(R.string.sni_hostname_match), context.getString(if (it) R.string.sni_hostname_matched else R.string.sni_hostname_not_matched))
                 }
                 result.certificateChainTrustedBySystem?.let {
-                    TechnicalLine("System trust", if (it) "Trusted by Android" else "Not trusted by Android")
+                    TechnicalLine(context.getString(R.string.sni_system_trust), context.getString(if (it) R.string.sni_trusted_by_android else R.string.sni_not_trusted_by_android))
                 }
                 val timings = listOfNotNull(
-                    result.dnsTimeMs?.let { "DNS ${it} ms" },
-                    result.tcpTimeMs?.let { "TCP ${it} ms" },
-                    result.tlsTimeMs?.let { "TLS ${it} ms" },
-                    result.totalTimeMs?.let { "Total ${it} ms" },
+                    result.dnsTimeMs?.let { context.getString(R.string.metric_dns_ms, it) },
+                    result.tcpTimeMs?.let { context.getString(R.string.metric_tcp_ms, it) },
+                    result.tlsTimeMs?.let { context.getString(R.string.metric_tls_ms, it) },
+                    result.totalTimeMs?.let { context.getString(R.string.metric_total_ms, it) },
                 )
                 if (timings.isNotEmpty()) {
                     Text(
@@ -244,7 +250,7 @@ private fun TechnicalLine(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "$label:",
+            text = LocalContext.current.getString(R.string.label_with_colon, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -255,7 +261,7 @@ private fun TechnicalLine(
 @Composable
 private fun SniStatusBadge(status: SniAnalysisStatus) {
     DiagnosticsStatusChip(
-        text = status.title,
+        text = LocalContext.current.getString(status.titleResId()),
         tone = when (status) {
             SniAnalysisStatus.Normal -> DiagnosticsChipTone.Positive
             SniAnalysisStatus.Inconclusive -> DiagnosticsChipTone.Neutral
@@ -266,9 +272,16 @@ private fun SniStatusBadge(status: SniAnalysisStatus) {
     )
 }
 
-private fun variantOutcomeSummary(result: SniVariantResult): String = when {
-    result.tlsHandshakeSucceeded -> "TLS handshake succeeded for this variant."
-    result.tcpConnected -> result.errorCategory?.title ?: "TCP connected, but TLS handshake failed."
-    result.dnsResolved -> result.errorCategory?.title ?: "DNS resolved, but TCP connection failed."
-    else -> result.errorCategory?.title ?: "DNS resolution failed for this variant."
+@Composable
+private fun variantOutcomeSummary(result: SniVariantResult): String {
+    val context = LocalContext.current
+    return when {
+        result.tlsHandshakeSucceeded -> context.getString(R.string.sni_variant_outcome_success)
+        result.tcpConnected -> result.errorCategory?.let { context.getString(it.titleResId()) }
+            ?: context.getString(R.string.sni_variant_outcome_tcp_connected_tls_failed)
+        result.dnsResolved -> result.errorCategory?.let { context.getString(it.titleResId()) }
+            ?: context.getString(R.string.sni_variant_outcome_dns_resolved_tcp_failed)
+        else -> result.errorCategory?.let { context.getString(it.titleResId()) }
+            ?: context.getString(R.string.sni_variant_outcome_dns_failed)
+    }
 }

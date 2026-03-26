@@ -6,13 +6,9 @@ data class ConnectivityTarget(
 )
 
 enum class ConnectivityTargetPreset(
-    val title: String,
-    val subtitle: String,
     val endpoints: List<ConnectivityTarget>,
 ) {
     Standard(
-        title = "Standard",
-        subtitle = "Default endpoints with Cloudflare primary and Google fallback",
         endpoints = listOf(
             ConnectivityTarget(
                 label = "Cloudflare Trace",
@@ -25,8 +21,6 @@ enum class ConnectivityTargetPreset(
         ),
     ),
     HighCensorship(
-        title = "High-censorship",
-        subtitle = "Recommended for heavily filtered networks such as China",
         endpoints = listOf(
             ConnectivityTarget(
                 label = "Firefox Detect Portal",

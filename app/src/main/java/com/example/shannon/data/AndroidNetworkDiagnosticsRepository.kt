@@ -10,6 +10,8 @@ import android.telephony.TelephonyManager
 import android.util.Base64
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException
 import com.google.android.gms.common.GooglePlayServicesRepairableException
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.domain.analysis.SniMitmAnalysisEngine
 import com.example.shannon.domain.model.ConnectivityStepResult
 import com.example.shannon.domain.model.ConnectivityTestResult
@@ -165,7 +167,9 @@ private val tracerouteIpRegex = Regex("""(?i)\bfrom ([0-9a-f:.]+)""")
 class AndroidNetworkDiagnosticsRepository(
     private val context: Context,
 ) : NetworkDiagnosticsRepository {
-    private val sniMitmAnalysisEngine = SniMitmAnalysisEngine()
+    private val sniMitmAnalysisEngine = SniMitmAnalysisEngine { resId, args ->
+        context.getString(resId, *args.toTypedArray())
+    }
     private val http3Probe by lazy { CronetHttp3Probe(context) }
 
     private val systemTrustManager: X509TrustManager by lazy {
@@ -225,7 +229,13 @@ class AndroidNetworkDiagnosticsRepository(
             targetPreset.endpoints.forEachIndexed { index, target ->
                 val fallbackReason = lastResult?.steps
                     ?.lastOrNull { !it.success }
-                    ?.let { "Fallback after ${it.stage} failure on ${targetPreset.endpoints[index - 1].label}" }
+                ?.let {
+                    context.getString(
+                        R.string.connectivity_fallback_reason,
+                        it.stage,
+                        targetPreset.endpoints[index - 1].label,
+                    )
+                }
 
                 val result = runSingleEndpointTest(
                     target = target,
@@ -341,17 +351,17 @@ class AndroidNetworkDiagnosticsRepository(
         }
 
         val summary = when {
-            anyPrivateOrReserved -> "Resolver returned private or reserved addresses."
+            anyPrivateOrReserved -> context.getString(R.string.dns_summary_private_reserved)
             systemLikelyNxdomain && publicHasValidAnswers ->
-                "System resolver returned NXDOMAIN while public resolvers returned valid answers."
+                context.getString(R.string.dns_summary_nxdomain_public_answers)
             systemNoValidAnswers && publicHasValidAnswers ->
-                "System resolver returned no valid answers while public resolvers succeeded."
+                context.getString(R.string.dns_summary_no_answers_public_succeeded)
             anySharedAddress ->
-                "System resolver shares at least one IP with public resolvers."
+                context.getString(R.string.dns_summary_shared_ip)
             publicConsistentAmongThemselves ->
-                "System resolver differs from public resolvers with no shared IPs."
+                context.getString(R.string.dns_summary_no_shared_ips)
             else ->
-                "Resolvers returned different CDN endpoints with no direct overlap."
+                context.getString(R.string.dns_summary_cdn_variation)
         }
 
         DnsAnalysisResult(
@@ -460,14 +470,22 @@ class AndroidNetworkDiagnosticsRepository(
                 address = InetAddress.getByName(host)
             }.toMillis()
             ConnectivityStepResult(
-                stage = "DNS",
+                stage = context.getString(R.string.stage_dns),
                 success = true,
-                summary = "OK, ${address?.hostAddress ?: "resolved"} in $elapsed ms",
+                summary = context.getString(
+                    R.string.connectivity_dns_success,
+                    address?.hostAddress ?: context.getString(R.string.connectivity_dns_resolved),
+                    elapsed,
+                ),
             )
         }.getOrElse { error ->
             return ConnectivityTestResult(
                 steps = listOf(
-                    ConnectivityStepResult("DNS", false, error.message ?: "DNS lookup failed")
+                    ConnectivityStepResult(
+                        context.getString(R.string.stage_dns),
+                        false,
+                        error.message ?: context.getString(R.string.connectivity_dns_failed),
+                    )
                 ),
                 checkedAt = nowTimestamp(),
                 endpointLabel = target.label,
@@ -478,7 +496,9 @@ class AndroidNetworkDiagnosticsRepository(
         }
         steps += dnsResult
 
-        val resolvedIp = dnsResult.summary.substringAfter("OK, ").substringBefore(" in")
+        val resolvedIp = dnsResult.summary
+            .substringAfter(context.getString(R.string.connectivity_dns_success_prefix))
+            .substringBefore(" in")
 
         val tcpResult = runCatching {
             val elapsed = measureNanoTime {
@@ -486,9 +506,17 @@ class AndroidNetworkDiagnosticsRepository(
                     socket.connect(InetSocketAddress(host, 443), 5_000)
                 }
             }.toMillis()
-            ConnectivityStepResult("TCP", true, "Connected to $resolvedIp:443 in $elapsed ms")
+            ConnectivityStepResult(
+                context.getString(R.string.stage_tcp),
+                true,
+                context.getString(R.string.connectivity_tcp_success, resolvedIp, elapsed),
+            )
         }.getOrElse { error ->
-            steps += ConnectivityStepResult("TCP", false, error.message ?: "TCP connection failed")
+            steps += ConnectivityStepResult(
+                context.getString(R.string.stage_tcp),
+                false,
+                error.message ?: context.getString(R.string.connectivity_tcp_failed),
+            )
             return ConnectivityTestResult(
                 steps = steps,
                 checkedAt = nowTimestamp(),
@@ -502,7 +530,7 @@ class AndroidNetworkDiagnosticsRepository(
 
         val tlsResult = runCatching {
             val sslFactory = SSLSocketFactory.getDefault() as SSLSocketFactory
-            var protocol = "TLS"
+            var protocol = context.getString(R.string.stage_tls)
             val elapsed = measureNanoTime {
                 Socket().use { rawSocket ->
                     rawSocket.connect(InetSocketAddress(host, 443), 5_000)
@@ -512,13 +540,21 @@ class AndroidNetworkDiagnosticsRepository(
                         it.soTimeout = 5_000
                         it.useClientMode = true
                         it.startHandshake()
-                        protocol = it.session.protocol ?: "TLS"
+                        protocol = it.session.protocol ?: context.getString(R.string.stage_tls)
                     }
                 }
             }.toMillis()
-            ConnectivityStepResult("TLS", true, "$protocol handshake in $elapsed ms")
+            ConnectivityStepResult(
+                context.getString(R.string.stage_tls),
+                true,
+                context.getString(R.string.connectivity_tls_success, protocol, elapsed),
+            )
         }.getOrElse { error ->
-            steps += ConnectivityStepResult("TLS", false, error.message ?: "TLS handshake failed")
+            steps += ConnectivityStepResult(
+                context.getString(R.string.stage_tls),
+                false,
+                error.message ?: context.getString(R.string.connectivity_tls_failed),
+            )
             return ConnectivityTestResult(
                 steps = steps,
                 checkedAt = nowTimestamp(),
@@ -549,10 +585,14 @@ class AndroidNetworkDiagnosticsRepository(
             ConnectivityStepResult(
                 stage = "HTTP",
                 success = success,
-                summary = "Response $responseCode in $elapsed ms",
+                summary = context.getString(R.string.connectivity_http_success, responseCode, elapsed),
             )
         }.getOrElse { error ->
-            ConnectivityStepResult("HTTP", false, error.message ?: "HTTP request failed")
+            ConnectivityStepResult(
+                "HTTP",
+                false,
+                error.message ?: context.getString(R.string.connectivity_http_failed),
+            )
         }
         steps += httpResult
 
@@ -753,7 +793,7 @@ class AndroidNetworkDiagnosticsRepository(
                     "dnsAnalysis",
                     JSONObject().apply {
                         put("domain", dns.domain)
-                        put("status", dns.status.title)
+                    put("status", context.getString(dns.status.titleResId()))
                         put("summary", dns.summary)
                     }
                 )
@@ -771,13 +811,13 @@ class AndroidNetworkDiagnosticsRepository(
             }
             report.tlsAnalysis?.let { tls ->
                 put("tlsAnalysis", JSONObject().apply {
-                    put("status", tls.status.title)
+                    put("status", context.getString(tls.status.titleResId()))
                     put("observations", JSONArray(tls.observations.map { it.title }))
                 })
             }
             report.sniMitmAnalysis?.let { sni ->
                 put("sniMitmAnalysis", JSONObject().apply {
-                    put("status", sni.status.title)
+                    put("status", context.getString(sni.status.titleResId()))
                     put("observations", JSONArray(sni.observations.map { it.title }))
                 })
             }
@@ -789,7 +829,7 @@ class AndroidNetworkDiagnosticsRepository(
                             put(
                                 JSONObject().apply {
                                     put("service", result.serviceName)
-                                    put("status", result.status.title)
+                    put("status", context.getString(result.status.titleResId()))
                                     put("url", result.targetUrl)
                                 }
                             )
@@ -886,7 +926,7 @@ class AndroidNetworkDiagnosticsRepository(
                 appendLine()
                 appendLine("## DNS analysis")
                 appendLine("- Domain: ${it.domain}")
-                appendLine("- Status: ${it.status.title}")
+            appendLine("- Status: ${context.getString(it.status.titleResId())}")
                 appendLine("- Summary: ${it.summary}")
             }
             report.protocolAnalysis?.let {
@@ -899,7 +939,7 @@ class AndroidNetworkDiagnosticsRepository(
             report.tlsAnalysis?.let {
                 appendLine()
                 appendLine("## TLS analysis")
-                appendLine("- Status: ${it.status.title}")
+            appendLine("- Status: ${context.getString(it.status.titleResId())}")
                 it.observations.forEach { observation ->
                     appendLine("- ${observation.title}: ${observation.summary}")
                 }
@@ -907,7 +947,7 @@ class AndroidNetworkDiagnosticsRepository(
             report.sniMitmAnalysis?.let {
                 appendLine()
                 appendLine("## SNI filtering and MITM")
-                appendLine("- Status: ${it.status.title}")
+            appendLine("- Status: ${context.getString(it.status.titleResId())}")
                 it.observations.forEach { observation ->
                     appendLine("- ${observation.title}: ${observation.summary}")
                 }
@@ -916,7 +956,7 @@ class AndroidNetworkDiagnosticsRepository(
                 appendLine()
                 appendLine("## Website accessibility")
                 report.websiteAccessibilityResults.forEach { result ->
-                    appendLine("- ${result.serviceName}: ${result.status.title}")
+            appendLine("- ${result.serviceName}: ${context.getString(result.status.titleResId())}")
                 }
             }
         }
@@ -957,16 +997,16 @@ class AndroidNetworkDiagnosticsRepository(
             }
             report.dnsAnalysis?.let {
                 appendLine()
-                appendLine("DNS status: ${it.status.title}")
+            appendLine("DNS status: ${context.getString(it.status.titleResId())}")
                 appendLine(it.summary)
             }
             report.tlsAnalysis?.let {
                 appendLine()
-                appendLine("TLS status: ${it.status.title}")
+            appendLine("TLS status: ${context.getString(it.status.titleResId())}")
             }
             report.sniMitmAnalysis?.let {
                 appendLine()
-                appendLine("SNI status: ${it.status.title}")
+            appendLine("SNI status: ${context.getString(it.status.titleResId())}")
             }
         }
     }
@@ -1666,8 +1706,8 @@ class AndroidNetworkDiagnosticsRepository(
             return listOf(
                 TlsObservation(
                     code = "INCONCLUSIVE",
-                    title = "TLS analysis was inconclusive",
-                    summary = "All tested TLS handshakes failed, so no certificate or cipher comparisons could be made.",
+                    title = context.getString(R.string.tls_observation_inconclusive_title),
+                    summary = context.getString(R.string.tls_observation_inconclusive_summary),
                 )
             )
         }
@@ -1691,8 +1731,8 @@ class AndroidNetworkDiagnosticsRepository(
         if (suspiciousIssuers.isNotEmpty()) {
             observations += TlsObservation(
                 code = "TLS_INTERCEPTION_SUSPECTED",
-                title = "Possible TLS interception",
-                summary = "At least one endpoint presented a certificate issuer that looks like a proxy, filter, or security product.",
+                title = context.getString(R.string.observation_tls_interception_title),
+                summary = context.getString(R.string.observation_tls_interception_summary),
             )
         }
 
@@ -1703,8 +1743,8 @@ class AndroidNetworkDiagnosticsRepository(
         if (downgradeEndpoints.isNotEmpty()) {
             observations += TlsObservation(
                 code = "TLS_DOWNGRADE_SUSPECTED",
-                title = "Possible TLS downgrade",
-                summary = "Some endpoints negotiated TLS 1.2 even though a dedicated TLS 1.3 handshake also succeeded.",
+                title = context.getString(R.string.observation_tls_downgrade_title),
+                summary = context.getString(R.string.observation_tls_downgrade_summary),
             )
         }
 
@@ -1714,16 +1754,16 @@ class AndroidNetworkDiagnosticsRepository(
         if (unusualChains.isNotEmpty()) {
             observations += TlsObservation(
                 code = "UNUSUAL_CERTIFICATE_CHAIN",
-                title = "Certificate chain looks shorter than expected",
-                summary = "One or more endpoints presented a very short certificate chain. This can be normal, but it is worth double-checking if other TLS signals also look unusual.",
+                title = context.getString(R.string.observation_unusual_chain_title),
+                summary = context.getString(R.string.observation_unusual_chain_summary),
             )
         }
 
         if (observations.isEmpty()) {
             observations += TlsObservation(
                 code = "NO_TLS_ANOMALIES",
-                title = "No TLS anomalies detected",
-                summary = "TLS versions, certificate issuers, and handshake metadata look normal for the tested endpoints.",
+                title = context.getString(R.string.observation_no_tls_anomalies_title),
+                summary = context.getString(R.string.observation_no_tls_anomalies_summary),
             )
         }
 
@@ -1762,36 +1802,36 @@ class AndroidNetworkDiagnosticsRepository(
         if (http2Fallbacks.size >= 2 && http11Supported.isNotEmpty()) {
             observations += ProtocolObservation(
                 code = "ALPN_FALLBACK_OBSERVED",
-                title = "HTTP/2 fallback observed",
-                summary = "Multiple endpoints negotiated HTTP/1.1 instead of h2. This can be caused by ALPN interference or TLS interception.",
+                title = context.getString(R.string.observation_alpn_fallback_title),
+                summary = context.getString(R.string.observation_alpn_fallback_summary),
             )
         }
 
         if (http3Blocked.size >= 2 && http2Supported.isNotEmpty()) {
             observations += ProtocolObservation(
                 code = "QUIC_BLOCKING_SUSPECTED",
-                title = "Possible QUIC blocking detected",
-                summary = "HTTP/2 over TCP succeeded, but multiple HTTP/3 probes failed before negotiating h3. This can indicate UDP or QUIC filtering.",
+                title = context.getString(R.string.observation_quic_blocking_title),
+                summary = context.getString(R.string.observation_quic_blocking_summary),
             )
         } else if (http3Fallbacks.isNotEmpty() && http2Supported.isNotEmpty()) {
             observations += ProtocolObservation(
                 code = "HTTP3_FALLBACK_OBSERVED",
-                title = "HTTP/3 fallback observed",
-                summary = "A tested endpoint completed the request but negotiated HTTP/2 or HTTP/1.1 instead of h3.",
+                title = context.getString(R.string.observation_http3_fallback_title),
+                summary = context.getString(R.string.observation_http3_fallback_summary),
             )
         } else if (http3Inconclusive.size >= 2 && http3Supported.isEmpty() && http2Supported.isNotEmpty()) {
             observations += ProtocolObservation(
                 code = "QUIC_OR_HTTP3_LIMITED",
-                title = "HTTP/3 could not be confirmed",
-                summary = "HTTPS over TCP succeeded, but Shannon could not confirm h3 negotiation across multiple endpoints.",
+                title = context.getString(R.string.observation_http3_unconfirmed_title),
+                summary = context.getString(R.string.observation_http3_unconfirmed_summary),
             )
         }
 
         if (webSocketFailures.isNotEmpty() && (http11Supported.isNotEmpty() || http2Supported.isNotEmpty())) {
             observations += ProtocolObservation(
                 code = "WEBSOCKET_FILTERING_SUSPECTED",
-                title = "WebSocket upgrade failed while HTTPS worked",
-                summary = "The network allowed regular HTTPS traffic, but the WebSocket upgrade did not complete. This can indicate proxy or application-layer filtering.",
+                title = context.getString(R.string.observation_websocket_failed_title),
+                summary = context.getString(R.string.observation_websocket_failed_summary),
             )
         }
 
@@ -1804,16 +1844,16 @@ class AndroidNetworkDiagnosticsRepository(
         if (mixedProviders.isNotEmpty()) {
             observations += ProtocolObservation(
                 code = "PROVIDER_SPECIFIC_BEHAVIOR",
-                title = "Provider-specific differences detected",
-                summary = "Not all endpoints behaved the same way. This can reflect selective filtering, CDN differences, or provider-specific routing problems.",
+                title = context.getString(R.string.observation_provider_specific_title),
+                summary = context.getString(R.string.observation_provider_specific_summary),
             )
         }
 
         if (observations.isEmpty()) {
             observations += ProtocolObservation(
                 code = "NO_CLEAR_INTERFERENCE",
-                title = "No clear interference detected",
-                summary = "The current run did not match any strong DPI or middlebox heuristics.",
+                title = context.getString(R.string.observation_no_clear_interference_title),
+                summary = context.getString(R.string.observation_no_clear_interference_summary),
             )
         }
 
@@ -1837,7 +1877,7 @@ class AndroidNetworkDiagnosticsRepository(
                 ProtocolProbeErrorCategory.Timeout -> ProtocolProbeStatus.Blocked
                 else -> ProtocolProbeStatus.Failed
             },
-            summary = error.message ?: "${protocol.title} probe failed.",
+            summary = error.message ?: context.getString(R.string.protocol_probe_failed, context.getString(protocol.titleResId())),
             errorCategory = category,
             errorMessage = error.message ?: error.javaClass.simpleName,
         )
@@ -2070,44 +2110,44 @@ class AndroidNetworkDiagnosticsRepository(
             val ipv4 = addresses.filter { !it.contains(":") }
             val ipv6 = addresses.filter { it.contains(":") }
             DnsServerResult(
-                serverName = "System DNS",
-                serverAddress = "system",
-                records = listOf(
+            serverName = context.getString(R.string.dns_server_system),
+            serverAddress = context.getString(R.string.dns_server_system_address),
+            records = listOf(
                     DnsRecordResult(
                         recordType = "A",
                         transport = DnsLookupTransport.System,
                         addresses = ipv4,
                         responseCode = if (ipv4.isEmpty()) 0 else 0,
-                        error = if (ipv4.isEmpty()) "No A records" else null,
+                        error = if (ipv4.isEmpty()) context.getString(R.string.dns_no_records, "A") else null,
                     ),
                     DnsRecordResult(
                         recordType = "AAAA",
                         transport = DnsLookupTransport.System,
                         addresses = ipv6,
                         responseCode = if (ipv6.isEmpty()) 0 else 0,
-                        error = if (ipv6.isEmpty()) "No AAAA records" else null,
+                        error = if (ipv6.isEmpty()) context.getString(R.string.dns_no_records, "AAAA") else null,
                     ),
                 ),
             )
         }.getOrElse { error ->
             val isNxdomain = error.javaClass.simpleName.contains("UnknownHost", ignoreCase = true)
             DnsServerResult(
-                serverName = "System DNS",
-                serverAddress = "system",
+                serverName = context.getString(R.string.dns_server_system),
+                serverAddress = context.getString(R.string.dns_server_system_address),
                 records = listOf(
                     DnsRecordResult(
                         recordType = "A",
                         transport = DnsLookupTransport.System,
                         addresses = emptyList(),
                         responseCode = if (isNxdomain) 3 else null,
-                        error = if (isNxdomain) "NXDOMAIN" else (error.message ?: "System DNS lookup failed"),
+                        error = if (isNxdomain) context.getString(R.string.dns_nxdomain) else (error.message ?: context.getString(R.string.dns_system_lookup_failed)),
                     ),
                     DnsRecordResult(
                         recordType = "AAAA",
                         transport = DnsLookupTransport.System,
                         addresses = emptyList(),
                         responseCode = if (isNxdomain) 3 else null,
-                        error = if (isNxdomain) "NXDOMAIN" else (error.message ?: "System DNS lookup failed"),
+                        error = if (isNxdomain) context.getString(R.string.dns_nxdomain) else (error.message ?: context.getString(R.string.dns_system_lookup_failed)),
                     ),
                 ),
             )
@@ -2142,7 +2182,7 @@ class AndroidNetworkDiagnosticsRepository(
                 transport = DnsLookupTransport.Udp,
                 addresses = addresses,
                 responseCode = 0,
-                error = if (addresses.isEmpty()) "No $recordType records" else null,
+                error = if (addresses.isEmpty()) context.getString(R.string.dns_no_records, recordType) else null,
             )
         }.recoverCatching { error ->
             val addresses = resolveDnsOverTcp(domain, serverIp, queryType)
@@ -2152,7 +2192,11 @@ class AndroidNetworkDiagnosticsRepository(
                 addresses = addresses,
                 responseCode = 0,
                 error = if (addresses.isEmpty()) {
-                    "${error.message ?: "UDP query failed"}; no $recordType records over TCP"
+                    context.getString(
+                        R.string.dns_tcp_fallback_no_records,
+                        error.message ?: context.getString(R.string.dns_udp_query_failed),
+                        recordType,
+                    )
                 } else {
                     null
                 },
@@ -2163,7 +2207,7 @@ class AndroidNetworkDiagnosticsRepository(
                 transport = DnsLookupTransport.TcpFallback,
                 addresses = emptyList(),
                 responseCode = extractDnsResponseCode(error.message),
-                error = error.message ?: "$recordType lookup failed",
+                error = error.message ?: context.getString(R.string.dns_lookup_failed, recordType),
             )
         }
     }

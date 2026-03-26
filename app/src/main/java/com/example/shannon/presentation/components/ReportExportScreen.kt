@@ -13,7 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.sectionTitleResId
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.ReportFormat
 
 @Composable
@@ -25,6 +29,7 @@ fun ReportExportScreen(
     availableSections: List<String>,
     onExport: (ReportFormat) -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -36,12 +41,17 @@ fun ReportExportScreen(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Text(
-                text = "Export the latest diagnostics snapshot and open Android's share sheet as JSON, Markdown, or plain text.",
+                text = context.getString(R.string.report_export_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Available sections: ${availableSections.joinToString()}",
+                text = context.getString(
+                    R.string.report_export_available_sections,
+                    availableSections.joinToString { section ->
+                        sectionTitleResId(section)?.let(context::getString) ?: section
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -54,7 +64,7 @@ fun ReportExportScreen(
                         onClick = { onExport(format) },
                         enabled = !isExporting,
                     ) {
-                        Text("Share ${format.title}")
+                        Text(context.getString(R.string.report_export_share_format, context.getString(format.titleResId())))
                     }
                 }
             }
@@ -63,13 +73,13 @@ fun ReportExportScreen(
             }
             lastFormat?.let { format ->
                 Text(
-                    text = "Last export: ${format.title}",
+                    text = context.getString(R.string.report_export_last_export, context.getString(format.titleResId())),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
             exportedReportName?.let { reportName ->
                 Text(
-                    text = "Prepared file: $reportName",
+                    text = context.getString(R.string.report_export_prepared_file, reportName),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

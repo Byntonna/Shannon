@@ -29,7 +29,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.millisecondsText
 import com.example.shannon.domain.model.PingPacketState
 import com.example.shannon.domain.model.PingPacketStatus
 import com.example.shannon.domain.model.PingResult
@@ -46,6 +49,7 @@ fun PingDiagnosticsScreen(
     onPacketCountInputChange: (String) -> Unit,
     onRunPing: () -> Unit,
 ) {
+    val context = LocalContext.current
     var isPacketStatusExpanded by rememberSaveable { mutableStateOf(false) }
     val completedPackets = packetStatuses.count { it.state != PingPacketState.Pending }
     val totalPackets = packetStatuses.size
@@ -69,20 +73,20 @@ fun PingDiagnosticsScreen(
                 value = host,
                 onValueChange = onHostChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Host") },
+                label = { Text(context.getString(R.string.host)) },
                 singleLine = true,
             )
             OutlinedTextField(
                 value = packetCountInput,
                 onValueChange = onPacketCountInputChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Packet count") },
-                placeholder = { Text("5") },
+                label = { Text(context.getString(R.string.ping_packet_count)) },
+                placeholder = { Text(context.getString(R.string.ping_packet_count_placeholder)) },
                 singleLine = true,
                 enabled = !isRunning,
             )
             Button(onClick = onRunPing, enabled = !isRunning) {
-                Text(if (isRunning) "Running..." else "Run ping")
+                Text(context.getString(if (isRunning) R.string.action_running else R.string.ping_run))
             }
             if (isRunning) {
                 CircularProgressIndicator()
@@ -98,14 +102,14 @@ fun PingDiagnosticsScreen(
 
         result?.let {
             DiagnosticsSectionSurface {
-                Text("Ping result", style = MaterialTheme.typography.titleMedium)
-                MetricLine("Host", it.host)
-                MetricLine("Packets", "${it.packetsReceived}/${it.packetsSent}")
-                MetricLine("Packet loss", "${it.packetLoss}%")
-                MetricLine("Min", "${it.minLatencyMs} ms")
-                MetricLine("Avg", "${it.avgLatencyMs} ms")
-                MetricLine("Max", "${it.maxLatencyMs} ms")
-                MetricLine("Jitter", "${it.jitterMs} ms")
+                Text(context.getString(R.string.ping_result), style = MaterialTheme.typography.titleMedium)
+                MetricLine(context.getString(R.string.host), it.host)
+                MetricLine(context.getString(R.string.ping_packets), context.getString(R.string.ping_packets_value, it.packetsReceived, it.packetsSent))
+                MetricLine(context.getString(R.string.ping_packet_loss), context.getString(R.string.percentage_value, it.packetLoss))
+                    MetricLine(context.getString(R.string.ping_min), context.millisecondsText(it.minLatencyMs))
+                    MetricLine(context.getString(R.string.ping_avg), context.millisecondsText(it.avgLatencyMs))
+                    MetricLine(context.getString(R.string.ping_max), context.millisecondsText(it.maxLatencyMs))
+                    MetricLine(context.getString(R.string.ping_jitter), context.millisecondsText(it.jitterMs))
             }
         }
 
@@ -118,12 +122,12 @@ fun PingDiagnosticsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Packet status", style = MaterialTheme.typography.titleMedium)
+                        Text(context.getString(R.string.ping_packet_status), style = MaterialTheme.typography.titleMedium)
                         Text(
                             text = when {
-                                currentPacket == null -> "No packets yet"
-                                isRunning -> "Current packet: $currentPacket / $totalPackets"
-                                else -> "Completed: $completedPackets / $totalPackets"
+                                currentPacket == null -> context.getString(R.string.ping_no_packets_yet)
+                                isRunning -> context.getString(R.string.ping_current_packet_value, currentPacket, totalPackets)
+                                else -> context.getString(R.string.ping_completed_packets_value, completedPackets, totalPackets)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -156,11 +160,12 @@ fun PingDiagnosticsScreen(
 
 @Composable
 private fun PacketStatusLine(packet: PingPacketStatus) {
+    val context = LocalContext.current
     val statusText = when (packet.state) {
-        PingPacketState.Pending -> "Waiting"
-        PingPacketState.Reply -> packet.detail ?: "${packet.latencyMs ?: 0.0} ms"
-        PingPacketState.Lost -> "No reply"
-        PingPacketState.Error -> packet.detail ?: "Error"
+        PingPacketState.Pending -> context.getString(R.string.ping_waiting)
+                    PingPacketState.Reply -> packet.detail ?: context.millisecondsText(packet.latencyMs ?: 0.0)
+        PingPacketState.Lost -> context.getString(R.string.ping_no_reply)
+        PingPacketState.Error -> packet.detail ?: context.getString(R.string.port_status_error)
     }
 
     Row(
@@ -197,7 +202,7 @@ private fun MetricLine(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "$label:",
+            text = LocalContext.current.getString(R.string.label_with_colon, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

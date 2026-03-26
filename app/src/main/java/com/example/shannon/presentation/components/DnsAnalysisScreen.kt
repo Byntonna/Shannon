@@ -15,7 +15,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.DnsAnalysisResult
 import com.example.shannon.domain.model.DnsAnalysisStatus
 import com.example.shannon.domain.model.DnsRecordResult
@@ -29,6 +32,7 @@ fun DnsAnalysisScreen(
     onDomainChange: (String) -> Unit,
     onRunAnalysis: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -43,11 +47,11 @@ fun DnsAnalysisScreen(
                 value = domain,
                 onValueChange = onDomainChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Domain") },
+                label = { Text(context.getString(R.string.dns_domain)) },
                 singleLine = true,
             )
             Button(onClick = onRunAnalysis, enabled = !isRunning) {
-                Text(if (isRunning) "Running..." else "Run DNS analysis")
+                Text(context.getString(if (isRunning) R.string.action_running else R.string.dns_run_analysis))
             }
             if (isRunning && result == null) {
                 CircularProgressIndicator()
@@ -65,11 +69,12 @@ fun DnsAnalysisScreen(
 
 @Composable
 private fun FindingsCard(result: DnsAnalysisResult) {
+    val context = LocalContext.current
     DiagnosticsSectionSurface {
-        Text("Findings", style = MaterialTheme.typography.titleMedium)
-        Text("Domain: ${result.domain}", style = MaterialTheme.typography.bodyMedium)
+        Text(context.getString(R.string.findings), style = MaterialTheme.typography.titleMedium)
+        Text(context.getString(R.string.dns_domain_value, result.domain), style = MaterialTheme.typography.bodyMedium)
         DiagnosticsStatusChip(
-            text = result.status.title,
+            text = context.getString(result.status.titleResId()),
             tone = when (result.status) {
                 DnsAnalysisStatus.Ok -> DiagnosticsChipTone.Positive
                 DnsAnalysisStatus.Blocked -> DiagnosticsChipTone.Negative
@@ -79,7 +84,7 @@ private fun FindingsCard(result: DnsAnalysisResult) {
         )
         Text(result.summary, style = MaterialTheme.typography.bodyMedium)
         Text(
-            text = "Checked at ${result.checkedAt}",
+            text = context.getString(R.string.checked_at_value, result.checkedAt),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -103,6 +108,7 @@ private fun DnsServerCard(server: DnsServerResult) {
 
 @Composable
 private fun DnsRecordCard(record: DnsRecordResult) {
+    val context = LocalContext.current
     DiagnosticsSectionSurface(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
@@ -112,7 +118,7 @@ private fun DnsRecordCard(record: DnsRecordResult) {
         ) {
             Text(record.recordType, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = record.transport.title,
+                text = context.getString(record.transport.titleResId()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

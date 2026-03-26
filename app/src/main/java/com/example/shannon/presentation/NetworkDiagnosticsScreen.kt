@@ -42,10 +42,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.presentation.components.ConnectivityTestScreen
 import com.example.shannon.presentation.components.DnsAnalysisScreen
 import com.example.shannon.presentation.components.DiagnosticsHomeScreen
@@ -250,15 +253,17 @@ fun NetworkDiagnosticsScreen(
                     exportedReportName = uiState.exportedReportName,
                     error = uiState.reportError,
                     availableSections = listOfNotNull(
-                        uiState.overview?.let { "Overview" },
-                        uiState.testResult?.let { "Connectivity" },
-                        uiState.dnsAnalysisResult?.let { "DNS" },
-                        uiState.protocolAnalysisResult?.let { "Protocols" },
-                        uiState.tlsAnalysisResult?.let { "TLS" },
-                        uiState.sniMitmAnalysisResult?.let { "SNI / MITM" },
-                        uiState.pingResult?.let { "Ping" },
-                        uiState.tracerouteResult?.let { "Traceroute" },
-                        uiState.websiteAccessibilityResults.takeIf { it.isNotEmpty() }?.let { "Websites" },
+                        uiState.overview?.let { stringResource(R.string.report_section_overview) },
+                        uiState.testResult?.let { stringResource(R.string.report_section_connectivity) },
+                        uiState.dnsAnalysisResult?.let { stringResource(R.string.report_section_dns) },
+                        uiState.protocolAnalysisResult?.let { stringResource(R.string.report_section_protocols) },
+                        uiState.tlsAnalysisResult?.let { stringResource(R.string.report_section_tls) },
+                        uiState.sniMitmAnalysisResult?.let { stringResource(R.string.report_section_sni_mitm) },
+                        uiState.pingResult?.let { stringResource(R.string.report_section_ping) },
+                        uiState.tracerouteResult?.let { stringResource(R.string.report_section_traceroute) },
+                        uiState.websiteAccessibilityResults.takeIf { it.isNotEmpty() }?.let {
+                            stringResource(R.string.report_section_websites)
+                        },
                     ),
                     onExport = onExportReport,
                 )
@@ -348,7 +353,7 @@ private fun DiagnosticsTopBar(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.top_bar_back),
                     )
                 }
             }
@@ -381,13 +386,13 @@ private fun DiagnosticsTopBar(
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
-                            text = screen.title,
+                            text = stringResource(screen.titleResId()),
                             style = titleStyle,
                         )
                         Spacer(modifier = Modifier.height(lerp(2.dp, 0.dp, titleCollapseFraction)))
                         if (subtitleHeight > 0.dp || subtitleAlpha > 0.01f) {
                             Text(
-                                text = "Network diagnostics toolkit",
+                                text = stringResource(R.string.top_bar_subtitle),
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontWeight = FontWeight.Medium,
                                 ),
@@ -400,7 +405,7 @@ private fun DiagnosticsTopBar(
                         }
                     }
                 } else {
-                    Text(screen.title)
+                    Text(stringResource(screen.titleResId()))
                 }
             }
         }

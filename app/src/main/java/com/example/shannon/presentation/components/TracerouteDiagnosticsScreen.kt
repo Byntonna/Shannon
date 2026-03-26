@@ -15,7 +15,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.millisecondsText
 import com.example.shannon.domain.model.TracerouteResult
 
 @Composable
@@ -27,6 +30,7 @@ fun TracerouteDiagnosticsScreen(
     onHostChange: (String) -> Unit,
     onRunTraceroute: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -41,11 +45,11 @@ fun TracerouteDiagnosticsScreen(
                 value = host,
                 onValueChange = onHostChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Destination") },
+                label = { Text(context.getString(R.string.traceroute_destination)) },
                 singleLine = true,
             )
             Button(onClick = onRunTraceroute, enabled = !isRunning) {
-                Text(if (isRunning) "Running..." else "Run traceroute")
+                Text(context.getString(if (isRunning) R.string.action_running else R.string.traceroute_run))
             }
             if (isRunning && result == null) {
                 CircularProgressIndicator()
@@ -61,18 +65,18 @@ fun TracerouteDiagnosticsScreen(
 
         result?.let {
             DiagnosticsSectionSurface {
-                Text("Destination: ${it.destination}", style = MaterialTheme.typography.titleMedium)
+                Text(context.getString(R.string.traceroute_destination_value, it.destination), style = MaterialTheme.typography.titleMedium)
                 it.hops.forEachIndexed { index, hop ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Hop ${hop.hopNumber}", style = MaterialTheme.typography.titleMedium)
+                        Text(context.getString(R.string.traceroute_hop_value, hop.hopNumber), style = MaterialTheme.typography.titleMedium)
                         Text(
                             text = if (hop.timeout) {
-                                "Timeout"
+                                context.getString(R.string.port_status_timeout)
                             } else {
                                 listOfNotNull(
                                     hop.hostname,
                                     hop.ipAddress,
-                                    hop.latencyMs?.let { latency -> "${latency} ms" },
+                    hop.latencyMs?.let { latency -> context.millisecondsText(latency) },
                                 ).joinToString("  |  ")
                             },
                             style = MaterialTheme.typography.bodyMedium,

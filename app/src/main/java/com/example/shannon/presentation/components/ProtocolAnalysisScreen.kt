@@ -15,7 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.ProtocolAnalysisResult
 import com.example.shannon.domain.model.ProtocolProbeKind
 import com.example.shannon.domain.model.ProtocolProbeStatus
@@ -27,6 +30,7 @@ fun ProtocolAnalysisScreen(
     isRunning: Boolean,
     onRunAnalysis: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -38,12 +42,12 @@ fun ProtocolAnalysisScreen(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Text(
-                text = "Active probes for HTTP/1.1, HTTP/2, HTTP/3 over QUIC, and WebSocket upgrades.",
+                text = context.getString(R.string.protocol_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(onClick = onRunAnalysis, enabled = !isRunning) {
-                Text(if (isRunning) "Running..." else "Run protocol analysis")
+                Text(context.getString(if (isRunning) R.string.action_running else R.string.protocol_run_analysis))
             }
             if (isRunning && result == null) {
                 CircularProgressIndicator()
@@ -64,11 +68,12 @@ fun ProtocolAnalysisScreen(
 
 @Composable
 private fun ObservationCard(result: ProtocolAnalysisResult) {
+    val context = LocalContext.current
     DiagnosticsSectionSurface {
-        Text("Interpretation", style = MaterialTheme.typography.titleMedium)
+        Text(context.getString(R.string.interpretation), style = MaterialTheme.typography.titleMedium)
         if (result.observations.isEmpty()) {
             Text(
-                text = "No clear interference patterns were detected in this run.",
+                text = context.getString(R.string.protocol_no_observations),
                 style = MaterialTheme.typography.bodyMedium,
             )
         } else {
@@ -83,7 +88,7 @@ private fun ObservationCard(result: ProtocolAnalysisResult) {
             }
         }
         Text(
-            text = "Checked at ${result.checkedAt}",
+            text = context.getString(R.string.checked_at_value, result.checkedAt),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -96,7 +101,7 @@ private fun ProtocolGroupCard(
     tests: List<ProtocolTestResult>,
 ) {
     DiagnosticsSectionSurface {
-        Text(protocol.title, style = MaterialTheme.typography.titleMedium)
+        Text(LocalContext.current.getString(protocol.titleResId()), style = MaterialTheme.typography.titleMedium)
         tests.forEachIndexed { index, test ->
             ProtocolTestCard(test = test)
             if (index != tests.lastIndex) {
@@ -128,7 +133,7 @@ private fun ProtocolTestCard(test: ProtocolTestResult) {
                 )
             }
             DiagnosticsStatusChip(
-                text = test.status.title,
+                text = LocalContext.current.getString(test.status.titleResId()),
                 tone = when (test.status) {
                     ProtocolProbeStatus.Supported -> DiagnosticsChipTone.Positive
                     ProtocolProbeStatus.Fallback -> DiagnosticsChipTone.Caution
@@ -140,17 +145,17 @@ private fun ProtocolTestCard(test: ProtocolTestResult) {
         }
         Text(test.summary, style = MaterialTheme.typography.bodyMedium)
         test.negotiatedProtocol?.let {
-            TechnicalLine(label = "Negotiated", value = it)
+            TechnicalLine(label = LocalContext.current.getString(R.string.protocol_negotiated), value = it)
         }
         test.ipAddress?.let {
-            TechnicalLine(label = "IP", value = it)
+            TechnicalLine(label = LocalContext.current.getString(R.string.overview_private_ip_short), value = it)
         }
         MetricsLine(test = test)
         test.httpStatusCode?.let {
-            TechnicalLine(label = "HTTP status", value = it.toString())
+            TechnicalLine(label = LocalContext.current.getString(R.string.protocol_http_status), value = it.toString())
         }
         test.errorCategory?.let {
-            TechnicalLine(label = "Error category", value = it.title)
+            TechnicalLine(label = LocalContext.current.getString(R.string.protocol_error_category), value = LocalContext.current.getString(it.titleResId()))
         }
         test.errorMessage?.let {
             Text(
@@ -165,10 +170,10 @@ private fun ProtocolTestCard(test: ProtocolTestResult) {
 @Composable
 private fun MetricsLine(test: ProtocolTestResult) {
     val parts = listOfNotNull(
-        test.dnsTimeMs?.let { "DNS ${it} ms" },
-        test.tcpTimeMs?.let { "TCP ${it} ms" },
-        test.tlsTimeMs?.let { "TLS ${it} ms" },
-        test.totalTimeMs?.let { "Total ${it} ms" },
+        test.dnsTimeMs?.let { LocalContext.current.getString(R.string.metric_dns_ms, it) },
+        test.tcpTimeMs?.let { LocalContext.current.getString(R.string.metric_tcp_ms, it) },
+        test.tlsTimeMs?.let { LocalContext.current.getString(R.string.metric_tls_ms, it) },
+        test.totalTimeMs?.let { LocalContext.current.getString(R.string.metric_total_ms, it) },
     )
     if (parts.isEmpty()) return
     Text(
@@ -185,7 +190,7 @@ private fun TechnicalLine(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "$label:",
+            text = LocalContext.current.getString(R.string.label_with_colon, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

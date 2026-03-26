@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.shannon.R
 import com.example.shannon.domain.model.NetworkOverview
 
 @Composable
@@ -26,6 +27,7 @@ fun OverviewDetailsScreen(
     overview: NetworkOverview?,
     onRefresh: () -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -34,11 +36,11 @@ fun OverviewDetailsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Button(onClick = onRefresh) {
-            Text("Refresh network")
+            Text(context.getString(R.string.action_refresh_network))
         }
         overview?.let {
             OverviewCard(overview = it)
-        } ?: PlaceholderCard(text = "Loading network overview...")
+        } ?: PlaceholderCard(text = context.getString(R.string.overview_loading))
     }
 }
 
@@ -49,30 +51,30 @@ private fun OverviewCard(overview: NetworkOverview) {
 
     fun copyValue(label: String, value: String) {
         clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value))
-        Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.overview_label_copied, label), Toast.LENGTH_SHORT).show()
     }
 
     DiagnosticsSectionSurface(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Text(
-            text = "Network overview",
+            text = context.getString(R.string.screen_network_overview),
             style = MaterialTheme.typography.titleMedium,
         )
-        OverviewRow("Type", overview.networkType, onCopy = ::copyValue)
-        OverviewRow("SSID", overview.ssid, onCopy = ::copyValue)
-        OverviewRow("BSSID", overview.bssid, onCopy = ::copyValue)
-        OverviewRow("Signal strength", overview.signalStrength, onCopy = ::copyValue)
-        OverviewRow("Internet", overview.internetReachable.toStatus(), onCopy = ::copyValue)
-        OverviewRow("Validated", overview.validated.toStatus(), onCopy = ::copyValue)
-        OverviewRow("Metered", overview.metered.toStatus(invertMeaning = true), onCopy = ::copyValue)
-        OverviewRow("Downstream", overview.downstreamMbps, onCopy = ::copyValue)
-        OverviewRow("Upstream", overview.upstreamMbps, onCopy = ::copyValue)
-        OverviewRow("Private IP", overview.privateIpAddress, onCopy = ::copyValue)
-        OverviewRow("Gateway", overview.gatewayAddress, onCopy = ::copyValue)
-        OverviewRow("IPv6", overview.ipv6Address, onCopy = ::copyValue)
-        OverviewRow("DNS", overview.dnsServers.joinToString(), onCopy = ::copyValue)
-        OverviewRow("Carrier", overview.carrierName, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_type), overview.networkType, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_ssid), overview.ssid, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_bssid), overview.bssid, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_signal_strength), overview.signalStrength, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_internet), overview.internetReachable.toStatus(context), onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_validated), overview.validated.toStatus(context), onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_metered), overview.metered.toStatus(context, invertMeaning = true), onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_downstream), overview.downstreamMbps, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_upstream), overview.upstreamMbps, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_private_ip), overview.privateIpAddress, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_gateway), overview.gatewayAddress, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_ipv6), overview.ipv6Address, onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_dns), overview.dnsServers.joinToString(), onCopy = ::copyValue)
+        OverviewRow(context.getString(R.string.overview_carrier), overview.carrierName, onCopy = ::copyValue)
     }
 }
 
@@ -101,14 +103,14 @@ private fun OverviewRow(
     }
 }
 
-private fun Boolean.toStatus(invertMeaning: Boolean = false): String {
+private fun Boolean.toStatus(context: Context, invertMeaning: Boolean = false): String {
     return if (invertMeaning) {
-        if (this) "No" else "Yes"
+        if (this) context.getString(R.string.answer_no) else context.getString(R.string.answer_yes)
     } else {
-        if (this) "Yes" else "No"
+        if (this) context.getString(R.string.answer_yes) else context.getString(R.string.answer_no)
     }
 }
 
 private fun String.isCopyableOverviewValue(): Boolean {
-    return lowercase() !in setOf("n/a", "yes", "no", "unavailable")
+    return lowercase() !in setOf("n/a", "yes", "no", "unavailable", "н/д", "да", "нет")
 }

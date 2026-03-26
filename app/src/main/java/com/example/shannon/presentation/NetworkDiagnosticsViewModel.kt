@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.shannon.R
+import com.example.shannon.millisecondsText
+import com.example.shannon.portScanSummaryText
+import com.example.shannon.titleResId
 import com.example.shannon.data.AndroidNetworkDiagnosticsRepository
 import com.example.shannon.data.AndroidPortScanRepository
 import com.example.shannon.data.HomeDashboardStatusStore
@@ -55,6 +59,7 @@ import java.io.File
 import kotlin.math.roundToInt
 
 class NetworkDiagnosticsViewModel(
+    private val appContext: Context,
     private val readNetworkOverview: ReadNetworkOverviewUseCase,
     private val runConnectivityTest: RunConnectivityTestUseCase,
     private val runWebsiteAccessibilityTest: RunWebsiteAccessibilityTestUseCase,
@@ -253,11 +258,11 @@ class NetworkDiagnosticsViewModel(
         val transport = _uiState.value.portScanTransport
         val ipVersion = _uiState.value.portScanIpVersion
         if (host.isBlank()) {
-            _uiState.update { it.copy(portScanError = "Host is required") }
+            _uiState.update { it.copy(portScanError = appContext.getString(R.string.error_host_required)) }
             return
         }
         if (port == null) {
-            _uiState.update { it.copy(portScanError = "Port must be a number") }
+            _uiState.update { it.copy(portScanError = appContext.getString(R.string.error_port_must_be_number)) }
             return
         }
         viewModelScope.launch {
@@ -281,13 +286,13 @@ class NetworkDiagnosticsViewModel(
                 _uiState.update {
                     it.copy(
                         isRunningPortScan = false,
-                        portScanError = error.message ?: "Port scan failed",
+                        portScanError = error.message ?: appContext.getString(R.string.error_port_scan_failed),
                     )
                 }
                 persistHomeStatus(
                     errorDashboardStatus(
                         key = HomeDashboardStatusKey.PortScan,
-                        text = "Failed",
+                        text = appContext.getString(R.string.protocol_status_failed),
                     )
                 )
             }
@@ -300,7 +305,7 @@ class NetworkDiagnosticsViewModel(
         val transport = _uiState.value.portScanTransport
         val ipVersion = _uiState.value.portScanIpVersion
         if (host.isBlank()) {
-            _uiState.update { it.copy(portScanError = "Host is required") }
+            _uiState.update { it.copy(portScanError = appContext.getString(R.string.error_host_required)) }
             return
         }
         viewModelScope.launch {
@@ -328,13 +333,13 @@ class NetworkDiagnosticsViewModel(
                 _uiState.update {
                     it.copy(
                         isRunningPortScan = false,
-                        portScanError = error.message ?: "Quick scan failed",
+                        portScanError = error.message ?: appContext.getString(R.string.error_quick_scan_failed),
                     )
                 }
                 persistHomeStatus(
                     errorDashboardStatus(
                         key = HomeDashboardStatusKey.PortScan,
-                        text = "Failed",
+                        text = appContext.getString(R.string.protocol_status_failed),
                     )
                 )
             }
@@ -371,12 +376,12 @@ class NetworkDiagnosticsViewModel(
         val packetCount = initialState.pingPacketCountInput.toIntOrNull() ?: 5
         val normalizedHost = host.trim().ifBlank { "1.1.1.1" }
         if (packetCount <= 0) {
-            _uiState.update { it.copy(pingError = "Packet count must be a positive number") }
+            _uiState.update { it.copy(pingError = appContext.getString(R.string.error_packet_count_positive)) }
             return
         }
         if (packetCount > MaxPingPacketCount) {
             _uiState.update {
-                it.copy(pingError = "Packet count must be $MaxPingPacketCount or less")
+                it.copy(pingError = appContext.getString(R.string.error_packet_count_max, MaxPingPacketCount))
             }
             return
         }
@@ -412,7 +417,7 @@ class NetworkDiagnosticsViewModel(
                                     packet.copy(
                                         state = PingPacketState.Reply,
                                         latencyMs = latency,
-                                        detail = "${latency} ms",
+                                        detail = appContext.millisecondsText(latency),
                                     )
                                 } else {
                                     packet
@@ -421,7 +426,7 @@ class NetworkDiagnosticsViewModel(
                         )
                     }
                 }.onFailure { error ->
-                    val message = error.message ?: "Packet failed"
+                    val message = error.message ?: appContext.getString(R.string.error_packet_failed)
                     val packetState = if (
                         message.contains("No successful ping replies", ignoreCase = true)
                     ) {
@@ -464,13 +469,13 @@ class NetworkDiagnosticsViewModel(
                 _uiState.update {
                     it.copy(
                         isRunningPing = false,
-                        pingError = terminalError ?: "Ping failed",
+                        pingError = terminalError ?: appContext.getString(R.string.error_ping_failed),
                     )
                 }
                 persistHomeStatus(
                     errorDashboardStatus(
                         key = HomeDashboardStatusKey.PingDiagnostics,
-                        text = "Failed",
+                        text = appContext.getString(R.string.protocol_status_failed),
                     )
                 )
             }
@@ -509,13 +514,13 @@ class NetworkDiagnosticsViewModel(
                 _uiState.update {
                     it.copy(
                         isRunningTraceroute = false,
-                        tracerouteError = error.message ?: "Traceroute failed",
+                        tracerouteError = error.message ?: appContext.getString(R.string.error_traceroute_failed),
                     )
                 }
                 persistHomeStatus(
                     errorDashboardStatus(
                         key = HomeDashboardStatusKey.TracerouteDiagnostics,
-                        text = "Failed",
+                        text = appContext.getString(R.string.protocol_status_failed),
                     )
                 )
             }
@@ -550,7 +555,7 @@ class NetworkDiagnosticsViewModel(
                 _uiState.update {
                     it.copy(
                         isExportingReport = false,
-                        reportError = error.message ?: "Report export failed",
+                        reportError = error.message ?: appContext.getString(R.string.error_report_export_failed),
                     )
                 }
             }
@@ -710,7 +715,7 @@ class NetworkDiagnosticsViewModel(
         return if (failedStep == null) {
             HomeDashboardStatus(
                 key = HomeDashboardStatusKey.ConnectivityTest,
-                text = "OK",
+                text = appContext.getString(R.string.status_ok),
                 tone = HomeDashboardStatusTone.Positive,
             )
         } else {
@@ -724,10 +729,10 @@ class NetworkDiagnosticsViewModel(
 
     private fun dnsDashboardStatus(result: DnsAnalysisResult): HomeDashboardStatus {
         val (text, tone) = when (result.status) {
-            DnsAnalysisStatus.Ok -> "OK" to HomeDashboardStatusTone.Positive
-            DnsAnalysisStatus.CdnVariation -> "Variation" to HomeDashboardStatusTone.Neutral
-            DnsAnalysisStatus.Suspicious -> "Suspicious" to HomeDashboardStatusTone.Warning
-            DnsAnalysisStatus.Blocked -> "Blocked" to HomeDashboardStatusTone.Error
+            DnsAnalysisStatus.Ok -> appContext.getString(R.string.status_ok) to HomeDashboardStatusTone.Positive
+            DnsAnalysisStatus.CdnVariation -> appContext.getString(R.string.dns_status_variation) to HomeDashboardStatusTone.Neutral
+            DnsAnalysisStatus.Suspicious -> appContext.getString(R.string.status_suspicious) to HomeDashboardStatusTone.Warning
+            DnsAnalysisStatus.Blocked -> appContext.getString(R.string.status_blocked) to HomeDashboardStatusTone.Error
         }
         return HomeDashboardStatus(
             key = HomeDashboardStatusKey.DnsAnalysis,
@@ -738,11 +743,11 @@ class NetworkDiagnosticsViewModel(
 
     private fun tlsDashboardStatus(result: TlsAnalysisResult): HomeDashboardStatus {
         val (text, tone) = when (result.status) {
-            TlsAnalysisHeuristicStatus.NoTlsAnomalies -> "OK" to HomeDashboardStatusTone.Positive
-            TlsAnalysisHeuristicStatus.UnusualCertificateChain -> "Chain" to HomeDashboardStatusTone.Warning
-            TlsAnalysisHeuristicStatus.TlsDowngradeSuspected -> "Downgrade" to HomeDashboardStatusTone.Warning
-            TlsAnalysisHeuristicStatus.TlsInterceptionSuspected -> "Interception" to HomeDashboardStatusTone.Warning
-            TlsAnalysisHeuristicStatus.Inconclusive -> "Inconclusive" to HomeDashboardStatusTone.Neutral
+            TlsAnalysisHeuristicStatus.NoTlsAnomalies -> appContext.getString(R.string.status_ok) to HomeDashboardStatusTone.Positive
+            TlsAnalysisHeuristicStatus.UnusualCertificateChain -> appContext.getString(R.string.home_tls_status_chain) to HomeDashboardStatusTone.Warning
+            TlsAnalysisHeuristicStatus.TlsDowngradeSuspected -> appContext.getString(R.string.home_tls_status_downgrade) to HomeDashboardStatusTone.Warning
+            TlsAnalysisHeuristicStatus.TlsInterceptionSuspected -> appContext.getString(R.string.home_tls_status_interception) to HomeDashboardStatusTone.Warning
+            TlsAnalysisHeuristicStatus.Inconclusive -> appContext.getString(R.string.status_inconclusive) to HomeDashboardStatusTone.Neutral
         }
         return HomeDashboardStatus(
             key = HomeDashboardStatusKey.TlsAnalysis,
@@ -753,11 +758,11 @@ class NetworkDiagnosticsViewModel(
 
     private fun sniDashboardStatus(result: SniMitmAnalysisResult): HomeDashboardStatus {
         val (text, tone) = when (result.status) {
-            SniAnalysisStatus.Normal -> "Normal" to HomeDashboardStatusTone.Positive
-            SniAnalysisStatus.SniFilteringSuspected -> "SNI filtering" to HomeDashboardStatusTone.Warning
-            SniAnalysisStatus.TlsInterceptionSuspected -> "TLS intercept" to HomeDashboardStatusTone.Warning
-            SniAnalysisStatus.MitmSuspected -> "MITM" to HomeDashboardStatusTone.Error
-            SniAnalysisStatus.Inconclusive -> "Inconclusive" to HomeDashboardStatusTone.Neutral
+            SniAnalysisStatus.Normal -> appContext.getString(R.string.status_normal) to HomeDashboardStatusTone.Positive
+            SniAnalysisStatus.SniFilteringSuspected -> appContext.getString(R.string.home_sni_status_filtering) to HomeDashboardStatusTone.Warning
+            SniAnalysisStatus.TlsInterceptionSuspected -> appContext.getString(R.string.home_sni_status_tls_intercept) to HomeDashboardStatusTone.Warning
+            SniAnalysisStatus.MitmSuspected -> appContext.getString(R.string.home_sni_status_mitm) to HomeDashboardStatusTone.Error
+            SniAnalysisStatus.Inconclusive -> appContext.getString(R.string.status_inconclusive) to HomeDashboardStatusTone.Neutral
         }
         return HomeDashboardStatus(
             key = HomeDashboardStatusKey.SniMitmAnalysis,
@@ -771,7 +776,7 @@ class NetworkDiagnosticsViewModel(
             val result = results.single()
             return HomeDashboardStatus(
                 key = HomeDashboardStatusKey.PortScan,
-                text = result.status.title,
+                text = appContext.getString(result.status.titleResId()),
                 tone = when (result.status) {
                     PortStatus.OPEN -> HomeDashboardStatusTone.Positive
                     PortStatus.CLOSED -> HomeDashboardStatusTone.Error
@@ -785,12 +790,7 @@ class NetworkDiagnosticsViewModel(
         val closedCount = results.count { it.status == PortStatus.CLOSED }
         val warningCount = results.count { it.status == PortStatus.FILTERED || it.status == PortStatus.TIMEOUT }
         val errorCount = results.count { it.status == PortStatus.ERROR }
-        val text = buildList {
-            if (openCount > 0) add("$openCount open")
-            if (closedCount > 0) add("$closedCount closed")
-            if (warningCount > 0) add("$warningCount timeout")
-            if (errorCount > 0) add("$errorCount error")
-        }.joinToString(" / ")
+        val text = appContext.portScanSummaryText(openCount, closedCount, warningCount, errorCount)
         val tone = when {
             openCount == results.size -> HomeDashboardStatusTone.Positive
             openCount > 0 -> HomeDashboardStatusTone.Warning
@@ -813,7 +813,7 @@ class NetworkDiagnosticsViewModel(
         }
         return HomeDashboardStatus(
             key = HomeDashboardStatusKey.PingDiagnostics,
-            text = "$avg ms",
+            text = appContext.millisecondsText(avg),
             tone = tone,
         )
     }
@@ -821,7 +821,7 @@ class NetworkDiagnosticsViewModel(
     private fun tracerouteDashboardStatus(result: TracerouteResult): HomeDashboardStatus {
         return HomeDashboardStatus(
             key = HomeDashboardStatusKey.TracerouteDiagnostics,
-            text = "${result.hops.size} hops",
+            text = appContext.getString(R.string.traceroute_hops_value, result.hops.size),
             tone = HomeDashboardStatusTone.Neutral,
         )
     }
@@ -843,10 +843,14 @@ class NetworkDiagnosticsViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val repository = AndroidNetworkDiagnosticsRepository(applicationContext)
-            val portScanRepository = AndroidPortScanRepository()
+            val portScanRepository = AndroidPortScanRepository(applicationContext)
             val database = ShannonDatabase.getInstance(applicationContext)
-            val homeDashboardStatusStore = HomeDashboardStatusStore(database.dashboardStatusDao())
+            val homeDashboardStatusStore = HomeDashboardStatusStore(
+                context = applicationContext,
+                dashboardStatusDao = database.dashboardStatusDao(),
+            )
             return NetworkDiagnosticsViewModel(
+                appContext = applicationContext,
                 readNetworkOverview = ReadNetworkOverviewUseCase(repository),
                 runConnectivityTest = RunConnectivityTestUseCase(repository),
                 runWebsiteAccessibilityTest = RunWebsiteAccessibilityTestUseCase(repository),

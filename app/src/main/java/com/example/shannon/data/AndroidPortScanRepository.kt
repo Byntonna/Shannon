@@ -1,5 +1,8 @@
 package com.example.shannon.data
 
+import android.content.Context
+import com.example.shannon.R
+import com.example.shannon.titleResId
 import com.example.shannon.domain.model.PortScanIpVersion
 import com.example.shannon.domain.model.PortScanResult
 import com.example.shannon.domain.model.PortScanTransport
@@ -21,7 +24,9 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import kotlin.system.measureNanoTime
 
-class AndroidPortScanRepository : PortScanRepository {
+class AndroidPortScanRepository(
+    private val context: Context,
+) : PortScanRepository {
     override suspend fun scanPort(
         host: String,
         port: Int,
@@ -35,7 +40,7 @@ class AndroidPortScanRepository : PortScanRepository {
                 port = port,
                 transport = transport,
                 ipVersion = ipVersion,
-                message = "Host is required",
+                message = context.getString(R.string.error_host_required),
             )
         }
         if (port !in 1..65535) {
@@ -44,7 +49,7 @@ class AndroidPortScanRepository : PortScanRepository {
                 port = port,
                 transport = transport,
                 ipVersion = ipVersion,
-                message = "Port must be between 1 and 65535",
+                message = context.getString(R.string.error_port_range),
             )
         }
 
@@ -64,7 +69,7 @@ class AndroidPortScanRepository : PortScanRepository {
                 port = port,
                 transport = transport,
                 ipVersion = ipVersion,
-                message = "No ${ipVersion.title} address found for host",
+                message = context.getString(R.string.error_no_ip_for_host, context.getString(ipVersion.titleResId())),
             )
         }
 
@@ -163,7 +168,7 @@ class AndroidPortScanRepository : PortScanRepository {
                 },
                 latencyMs = null,
                 error = when (error) {
-                    is SocketTimeoutException -> "No UDP response within ${UDP_TIMEOUT_MS} ms"
+                    is SocketTimeoutException -> context.getString(R.string.error_no_udp_response, UDP_TIMEOUT_MS)
                     else -> error.message ?: error.javaClass.simpleName
                 },
             )
