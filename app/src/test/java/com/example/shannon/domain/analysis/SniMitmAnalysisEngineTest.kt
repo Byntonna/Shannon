@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SniMitmAnalysisEngineTest {
-    private val engine = SniMitmAnalysisEngine()
+    private val engine = SniMitmAnalysisEngine { resId, _ -> "res-$resId" }
 
     @Test
     fun normalRunStaysNormalWhenOnlyExpectedVariantDifferencesExist() {

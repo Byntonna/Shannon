@@ -2,6 +2,7 @@ package com.example.shannon.domain.model
 
 enum class HomeDashboardStatusKey {
     ConnectivityTest,
+    WebsiteAccessibility,
     DnsAnalysis,
     TlsAnalysis,
     SniMitmAnalysis,

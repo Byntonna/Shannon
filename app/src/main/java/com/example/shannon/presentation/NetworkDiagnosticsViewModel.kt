@@ -32,8 +32,11 @@ import com.example.shannon.domain.model.SniMitmAnalysisResult
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
 import com.example.shannon.domain.model.TlsAnalysisResult
 import com.example.shannon.domain.model.TracerouteResult
+import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
 import com.example.shannon.domain.model.WebsiteAccessibilityPreset
+import com.example.shannon.domain.model.WebsiteAccessibilityResult
 import com.example.shannon.domain.model.WebsiteAccessibilityTarget
+import com.example.shannon.domain.model.toOutcome
 import com.example.shannon.domain.usecase.ExportReportUseCase
 import com.example.shannon.domain.usecase.ReadNetworkOverviewUseCase
 import com.example.shannon.domain.usecase.RunPingUseCase
@@ -47,6 +50,7 @@ import com.example.shannon.domain.usecase.RunWebsiteAccessibilityTestUseCase
 import com.example.shannon.domain.usecase.ScanPortUseCase
 import com.example.shannon.presentation.model.DiagnosticsDestination
 import com.example.shannon.presentation.model.DiagnosticsUiState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -55,6 +59,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -83,7 +88,9 @@ class NetworkDiagnosticsViewModel(
     init {
         refreshOverview()
         viewModelScope.launch {
-            val statuses = homeDashboardStatusStore.loadStatuses()
+            val statuses = withContext(Dispatchers.IO) {
+                homeDashboardStatusStore.loadStatuses()
+            }
             _uiState.update { it.copy(persistedHomeStatuses = statuses) }
         }
     }
@@ -316,10 +323,12 @@ class NetworkDiagnosticsViewModel(
                 )
             }
             runCatching {
-                coroutineScope {
-                    QuickScanPorts.map { port ->
-                        async { scanPort(host, port, transport, ipVersion) }
-                    }.awaitAll().sortedBy { it.port }
+                withContext(Dispatchers.IO) {
+                    coroutineScope {
+                        QuickScanPorts.map { port ->
+                            async { scanPort(host, port, transport, ipVersion) }
+                        }.awaitAll().sortedBy { it.port }
+                    }
                 }
             }.onSuccess { results ->
                 _uiState.update {
@@ -607,19 +616,31 @@ class NetworkDiagnosticsViewModel(
     fun launchWebsiteAccessibilityTest() {
         if (_uiState.value.isRunningWebsiteAccessibility) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isRunningWebsiteAccessibility = true) }
             val state = _uiState.value
-            val targets = if (state.customWebsiteTargets.isNotEmpty()) {
+            val targets = if (state.selectedWebsitePreset == WebsiteAccessibilityPreset.Custom) {
                 state.customWebsiteTargets
             } else {
                 state.selectedWebsitePreset.targets
             }.distinctBy { it.url }
+            if (targets.isEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        websiteAccessibilityResults = emptyList(),
+                        isRunningWebsiteAccessibility = false,
+                    )
+                }
+                return@launch
+            }
+            _uiState.update { it.copy(isRunningWebsiteAccessibility = true) }
             val results = runWebsiteAccessibilityTest(targets)
             _uiState.update {
                 it.copy(
                     websiteAccessibilityResults = results,
                     isRunningWebsiteAccessibility = false,
                 )
+            }
+            if (results.isNotEmpty()) {
+                persistHomeStatus(websiteDashboardStatus(results))
             }
         }
     }
@@ -645,10 +666,14 @@ class NetworkDiagnosticsViewModel(
         val normalized = normalizeWebsiteTarget(_uiState.value.customWebsiteInput) ?: return
         _uiState.update {
             if (it.customWebsiteTargets.any { target -> target.url == normalized.url }) {
-                it.copy(customWebsiteInput = "")
+                it.copy(
+                    customWebsiteInput = "",
+                    selectedWebsitePreset = WebsiteAccessibilityPreset.Custom,
+                )
             } else {
                 it.copy(
                     customWebsiteInput = "",
+                    selectedWebsitePreset = WebsiteAccessibilityPreset.Custom,
                     customWebsiteTargets = it.customWebsiteTargets + normalized,
                     websiteAccessibilityResults = emptyList(),
                 )
@@ -705,7 +730,7 @@ class NetworkDiagnosticsViewModel(
                 persistedHomeStatuses = it.persistedHomeStatuses + (status.key to status),
             )
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             homeDashboardStatusStore.saveStatus(status)
         }
     }
@@ -725,6 +750,27 @@ class NetworkDiagnosticsViewModel(
                 tone = HomeDashboardStatusTone.Warning,
             )
         }
+    }
+
+    private fun websiteDashboardStatus(results: List<WebsiteAccessibilityResult>): HomeDashboardStatus {
+        val limitedCount = results.count { it.status.toOutcome() == WebsiteAccessibilityOutcome.Limited }
+        val unstableCount = results.count { it.status.toOutcome() == WebsiteAccessibilityOutcome.Unstable }
+        val (text, tone) = when {
+            limitedCount > 0 -> {
+                appContext.getString(R.string.home_websites_status_limited, limitedCount) to
+                    HomeDashboardStatusTone.Error
+            }
+            unstableCount > 0 -> {
+                appContext.getString(R.string.home_websites_status_unstable, unstableCount) to
+                    HomeDashboardStatusTone.Warning
+            }
+            else -> appContext.getString(R.string.status_ok) to HomeDashboardStatusTone.Positive
+        }
+        return HomeDashboardStatus(
+            key = HomeDashboardStatusKey.WebsiteAccessibility,
+            text = text,
+            tone = tone,
+        )
     }
 
     private fun dnsDashboardStatus(result: DnsAnalysisResult): HomeDashboardStatus {

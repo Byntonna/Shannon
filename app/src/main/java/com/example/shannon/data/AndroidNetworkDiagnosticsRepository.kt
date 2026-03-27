@@ -376,19 +376,21 @@ class AndroidNetworkDiagnosticsRepository(
     }
 
     override suspend fun performProtocolAnalysis(): ProtocolAnalysisResult = withContext(Dispatchers.IO) {
-        val tests = buildList {
-            http11ProtocolEndpoints.forEach { endpoint ->
-                add(runHttp11Probe(endpoint))
+        val tests = coroutineScope {
+            val http11Tests = http11ProtocolEndpoints.map { endpoint ->
+                async { runHttp11Probe(endpoint) }
             }
-            http2ProtocolEndpoints.forEach { endpoint ->
-                add(runHttp2Probe(endpoint))
+            val http2Tests = http2ProtocolEndpoints.map { endpoint ->
+                async { runHttp2Probe(endpoint) }
             }
-            http3ProtocolEndpoints.forEach { endpoint ->
-                add(runHttp3Probe(endpoint))
+            val http3Tests = http3ProtocolEndpoints.map { endpoint ->
+                async { runHttp3Probe(endpoint) }
             }
-            webSocketProtocolEndpoints.forEach { endpoint ->
-                add(runWebSocketProbe(endpoint))
+            val webSocketTests = webSocketProtocolEndpoints.map { endpoint ->
+                async { runWebSocketProbe(endpoint) }
             }
+
+            (http11Tests + http2Tests + http3Tests + webSocketTests).awaitAll()
         }
 
         ProtocolAnalysisResult(
@@ -399,8 +401,10 @@ class AndroidNetworkDiagnosticsRepository(
     }
 
     override suspend fun performTlsAnalysis(): TlsAnalysisResult = withContext(Dispatchers.IO) {
-        val endpoints = tlsAnalysisEndpoints.map { endpoint ->
-            runTlsAnalysisProbe(endpoint)
+        val endpoints = coroutineScope {
+            tlsAnalysisEndpoints.map { endpoint ->
+                async { runTlsAnalysisProbe(endpoint) }
+            }.awaitAll()
         }
         val observations = buildTlsObservations(endpoints)
         val status = when {
@@ -423,8 +427,10 @@ class AndroidNetworkDiagnosticsRepository(
     }
 
     override suspend fun performSniMitmAnalysis(): SniMitmAnalysisResult = withContext(Dispatchers.IO) {
-        val probeResults = sniAnalysisEndpoints.map { endpoint ->
-            runSniProviderAnalysis(endpoint)
+        val probeResults = coroutineScope {
+            sniAnalysisEndpoints.map { endpoint ->
+                async { runSniProviderAnalysis(endpoint) }
+            }.awaitAll()
         }
         sniMitmAnalysisEngine.analyze(
             probeResults = probeResults,

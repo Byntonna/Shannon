@@ -159,7 +159,7 @@ private fun NetworkDiagnosticsScreenPreview() {
                     fallbackUsed = false,
                 ),
                 selectedTargetPreset = ConnectivityTargetPreset.Standard,
-                selectedWebsitePreset = WebsiteAccessibilityPreset.Popular,
+                selectedWebsitePreset = WebsiteAccessibilityPreset.Baseline,
                 customWebsiteTargets = listOf(
                     WebsiteAccessibilityTarget("openai.com", "https://openai.com/")
                 ),

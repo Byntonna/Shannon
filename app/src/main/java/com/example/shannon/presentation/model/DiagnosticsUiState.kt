@@ -29,7 +29,7 @@ data class DiagnosticsUiState(
     val selectedTargetPreset: ConnectivityTargetPreset = ConnectivityTargetPreset.Standard,
     val websiteAccessibilityResults: List<WebsiteAccessibilityResult> = emptyList(),
     val isRunningWebsiteAccessibility: Boolean = false,
-    val selectedWebsitePreset: WebsiteAccessibilityPreset = WebsiteAccessibilityPreset.Popular,
+    val selectedWebsitePreset: WebsiteAccessibilityPreset = WebsiteAccessibilityPreset.Baseline,
     val customWebsiteInput: String = "",
     val customWebsiteTargets: List<WebsiteAccessibilityTarget> = emptyList(),
     val dnsAnalysisDomain: String = "example.com",

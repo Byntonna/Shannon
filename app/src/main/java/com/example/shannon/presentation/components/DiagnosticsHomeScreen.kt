@@ -44,6 +44,8 @@ import com.example.shannon.domain.model.HomeDashboardStatusTone
 import com.example.shannon.domain.model.PortStatus
 import com.example.shannon.domain.model.SniAnalysisStatus
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
+import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
+import com.example.shannon.domain.model.toOutcome
 import com.example.shannon.presentation.model.DiagnosticsUiState
 import com.example.shannon.ui.theme.ShannonTheme
 import kotlin.math.roundToInt
@@ -103,6 +105,7 @@ fun DiagnosticsHomeScreen(
             iconBackground = IconPink,
             title = context.getString(R.string.home_websites_title),
             subtitle = context.getString(R.string.home_websites_subtitle),
+            status = websiteStatus(uiState),
             onClick = onOpenWebsiteAccessibility,
         ),
         HomeMenuEntry(
@@ -411,6 +414,29 @@ private fun dnsStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
         DnsAnalysisStatus.CdnVariation -> HomeEntryStatus(context.getString(R.string.dns_status_variation), HomeEntryTone.Neutral)
         DnsAnalysisStatus.Suspicious   -> HomeEntryStatus(context.getString(R.string.status_suspicious), HomeEntryTone.Warning)
         DnsAnalysisStatus.Blocked      -> HomeEntryStatus(context.getString(R.string.status_blocked), HomeEntryTone.Error)
+    }
+}
+
+@Composable
+private fun websiteStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
+    val results = uiState.websiteAccessibilityResults
+    if (results.isEmpty()) {
+        return persistedStatus(uiState, HomeDashboardStatusKey.WebsiteAccessibility)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
+    }
+    val limitedCount = results.count { it.status.toOutcome() == WebsiteAccessibilityOutcome.Limited }
+    val unstableCount = results.count { it.status.toOutcome() == WebsiteAccessibilityOutcome.Unstable }
+    return when {
+        limitedCount > 0 -> HomeEntryStatus(
+            context.getString(R.string.home_websites_status_limited, limitedCount),
+            HomeEntryTone.Error,
+        )
+        unstableCount > 0 -> HomeEntryStatus(
+            context.getString(R.string.home_websites_status_unstable, unstableCount),
+            HomeEntryTone.Warning,
+        )
+        else -> HomeEntryStatus(context.getString(R.string.status_ok), HomeEntryTone.Positive)
     }
 }
 

@@ -62,7 +62,7 @@ fun AboutShannonScreen() {
                     painter = painterResource(R.drawable.about_shannon_logo),
                     contentDescription = context.getString(R.string.about_logo_content_description),
                     modifier = Modifier
-                        .size(96.dp)
+                        .size(128.dp)
                         .clip(RoundedCornerShape(24.dp)),
                     contentScale = ContentScale.Crop,
                 )
@@ -106,21 +106,6 @@ fun AboutShannonScreen() {
                         Toast.makeText(context, context.getString(R.string.about_github_copied), Toast.LENGTH_SHORT).show()
                     },
                 )
-                Button(
-                    onClick = { uriHandler.openUri(ShannonGithubUrl) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                    ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 16.dp,
-                        vertical = 14.dp,
-                    ),
-                ) {
-                    Text(context.getString(R.string.about_open_github))
-                }
             }
         }
     }

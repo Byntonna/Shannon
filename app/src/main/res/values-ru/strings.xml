@@ -30,12 +30,14 @@
     <string name="connectivity_preset_standard_subtitle">Стандартные конечные точки: Cloudflare как основная и Google как резервная</string>
     <string name="connectivity_preset_high_censorship_title">Высокая цензура</string>
     <string name="connectivity_preset_high_censorship_subtitle">Рекомендуется для сильно фильтруемых сетей, например в Китае</string>
-    <string name="website_preset_popular_title">Популярные</string>
-    <string name="website_preset_popular_subtitle">Все основные сервисы</string>
-    <string name="website_preset_core_title">Базовые</string>
-    <string name="website_preset_core_subtitle">Базовые веб-сервисы</string>
-    <string name="website_preset_media_title">Медиа</string>
-    <string name="website_preset_media_subtitle">Видео и социальные платформы</string>
+    <string name="website_preset_quick_title">Быстрая</string>
+    <string name="website_preset_quick_subtitle">Быстрая сигнальная проверка локальных, внешних и ограничиваемых целей</string>
+    <string name="website_preset_baseline_title">Базовая</string>
+    <string name="website_preset_baseline_subtitle">Сбалансированный набор локальных, внешних и ограничиваемых целей</string>
+    <string name="website_preset_extended_title">Расширенная</string>
+    <string name="website_preset_extended_subtitle">Добавляет чувствительные цели и дополнительные контролы для сравнения</string>
+    <string name="website_preset_custom_title">Своя</string>
+    <string name="website_preset_custom_subtitle">Запускать только добавленные вручную цели</string>
 
     <string name="status_dns_ok">DNS в порядке</string>
     <string name="status_dns_variation">Вариативность CDN</string>
@@ -133,7 +135,6 @@
     <string name="about_version">Версия</string>
     <string name="about_github">GitHub</string>
     <string name="about_github_copied">Ссылка GitHub скопирована</string>
-    <string name="about_open_github">Открыть GitHub ↗</string>
     <string name="about_tap_open_copy">Нажмите, чтобы открыть, удерживайте, чтобы скопировать</string>
     <string name="about_link_hint">@string/about_tap_open_copy</string>
 
@@ -387,7 +388,7 @@
 
     <string name="website_custom_site">Пользовательский URL или домен сайта</string>
     <string name="website_custom_site_placeholder">example.com или https://example.com</string>
-    <string name="website_description">Проверьте популярные интернет-сервисы на этапах DNS, TCP, TLS и HTTP.</string>
+    <string name="website_description">Сравните локальные контрольные, внешние контрольные, ограничиваемые и чувствительные цели на этапах DNS, TCP, TLS и HTTP.</string>
     <string name="website_diagnostics_details">Подробности диагностики</string>
     <string name="website_placeholder">Запустите тест, чтобы получить живые результаты по сайтам.</string>
 
@@ -419,8 +420,10 @@
     <string name="home_tls_title">@string/destination_tls_analysis</string>
     <string name="home_traceroute_subtitle">Путь по хопам, IP-адреса, имена хостов, задержка и тайм-ауты</string>
     <string name="home_traceroute_title">@string/destination_traceroute_diagnostics</string>
-    <string name="home_websites_subtitle">Проверка популярных интернет-сервисов на этапах DNS, TCP, TLS и HTTP</string>
+    <string name="home_websites_subtitle">Сравнение локальных контрольных, внешних и ограничиваемых сайтов</string>
     <string name="home_websites_title">@string/destination_website_accessibility</string>
+    <string name="home_websites_status_limited">%1$d ограничено</string>
+    <string name="home_websites_status_unstable">%1$d нестабильно</string>
 
     <string name="connectivity_last_run_label">Последний запуск</string>
     <string name="connectivity_run_test">Запустить тест</string>
@@ -500,9 +503,41 @@
     <string name="website_details">Подробности диагностики</string>
     <string name="website_empty_results">Запустите тест, чтобы получить живые результаты по сайтам.</string>
     <string name="website_intro">@string/website_description</string>
+    <string name="website_preset_title">Набор</string>
     <string name="website_remove">Удалить</string>
-    <string name="website_run_test">Запустить тест сайта</string>
+    <string name="website_run_test">Запустить проверку</string>
     <string name="website_sites_to_test">Сайты для проверки</string>
+    <string name="website_targets_title">Цели этого запуска</string>
+    <string name="website_custom_hint">Добавленные сайты используются при выборе набора «Своя».</string>
+    <string name="website_summary_title">Последний запуск</string>
+    <string name="website_summary_no_results">Запустите набор, чтобы увидеть сгруппированные результаты и сравнить классы целей.</string>
+    <string name="website_summary_note">Одного сайта недостаточно, чтобы доказать фильтрацию. Сравнивайте паттерны между контрольными и ограничиваемыми группами.</string>
+    <string name="website_summary_available_count">%1$d доступно</string>
+    <string name="website_summary_unstable_count">%1$d нестабильно</string>
+    <string name="website_summary_limited_count">%1$d ограничено</string>
+    <string name="website_results_title">Результаты</string>
+    <string name="website_result_available">Доступен</string>
+    <string name="website_result_unstable">Нестабильно</string>
+    <string name="website_result_limited">Вероятно ограничен</string>
+    <string name="website_result_available_summary">Все этапы DNS, TCP, TLS и HTTP завершились успешно.</string>
+    <string name="website_result_unstable_summary">Транспортный уровень сработал, но HTTP-результат был частичным или необычным.</string>
+    <string name="website_result_limited_dns">DNS завершился ошибкой до того, как сайт удалось достигнуть.</string>
+    <string name="website_result_limited_tcp">DNS сработал, но TCP-соединение установить не удалось.</string>
+    <string name="website_result_limited_tls">TCP сработал, но TLS-рукопожатие завершилось ошибкой.</string>
+    <string name="website_category_local_control_title">Локальный контроль</string>
+    <string name="website_category_local_control_subtitle">Ожидаемо работает на обычном подключении внутри России</string>
+    <string name="website_category_foreign_control_title">Внешний контроль</string>
+    <string name="website_category_foreign_control_subtitle">Распространённые внешние сайты, которые часто остаются доступными</string>
+    <string name="website_category_restricted_title">Ограничиваемые</string>
+    <string name="website_category_restricted_subtitle">Полезны для выявления фильтрации или деградации конкретных сервисов</string>
+    <string name="website_category_sensitive_title">Чувствительные</string>
+    <string name="website_category_sensitive_subtitle">Интерпретируйте осторожно, потому что доступность может меняться отдельно</string>
+    <string name="website_category_custom_title">Своя</string>
+    <string name="website_category_custom_subtitle">Цели, добавленные вручную для этого запуска</string>
+    <string name="website_context_youtube">Это проверка веб-доступности, а не фактического качества воспроизведения видео.</string>
+    <string name="website_context_telegram">Доступность Web Telegram не гарантирует нормальную работу приложения Telegram.</string>
+    <string name="website_context_control_failure">Сбой на контрольной цели может указывать на более широкую сетевую проблему, а не только на фильтрацию.</string>
+    <string name="website_empty_custom">Добавьте хотя бы один пользовательский сайт, чтобы запустить этот набор.</string>
 
     <string name="observation_alpn_fallback_title">Обнаружен откат HTTP/2</string>
     <string name="observation_alpn_fallback_summary">Несколько конечных точек согласовали HTTP/1.1 вместо h2. Это может быть вызвано вмешательством в ALPN или перехватом TLS.</string>
