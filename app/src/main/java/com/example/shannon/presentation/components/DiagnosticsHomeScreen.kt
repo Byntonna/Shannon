@@ -17,6 +17,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -68,6 +73,7 @@ private val IconSage   = Color(0xFFD7E4A5) // Report export, About Shannon
 fun DiagnosticsHomeScreen(
     uiState: DiagnosticsUiState,
     scrollState: ScrollState,
+    onRunHomeSummaryCheck: () -> Unit,
     onOpenOverview: () -> Unit,
     onOpenDnsAnalysis: () -> Unit,
     onOpenConnectivityTest: () -> Unit,
@@ -184,6 +190,8 @@ fun DiagnosticsHomeScreen(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
+        val summary = networkSummary(uiState)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -192,10 +200,29 @@ fun DiagnosticsHomeScreen(
                 .padding(top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            DiagnosticsGroup(entries = overviewGroup)
-            DiagnosticsGroup(entries = coreGroup)
-            DiagnosticsGroup(entries = diagnosticsGroup)
-            DiagnosticsGroup(entries = utilityGroup)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                HomeSectionTitle(
+                    title = context.getString(R.string.home_summary_section_title),
+                )
+                NetworkSummaryCard(
+                    summary = summary,
+                    isRunning = uiState.isRunningHomeSummaryCheck,
+                    onRunCheck = onRunHomeSummaryCheck,
+                )
+            }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                HomeSectionTitle(
+                    title = context.getString(R.string.home_tools_section_title),
+                )
+                DiagnosticsGroup(entries = overviewGroup)
+                DiagnosticsGroup(entries = coreGroup)
+                DiagnosticsGroup(entries = diagnosticsGroup)
+                DiagnosticsGroup(entries = utilityGroup)
+            }
         }
 
         Box(
@@ -370,6 +397,13 @@ private data class HomeEntryStatus(
     val tone: HomeEntryTone,
 )
 
+private data class HomeSummaryState(
+    val title: String,
+    val description: String,
+    val tone: HomeEntryTone,
+    val showRunCheckAction: Boolean = false,
+)
+
 private enum class HomeEntryTone {
     Positive,
     Warning,
@@ -383,6 +417,68 @@ private fun statusColor(tone: HomeEntryTone): Color = when (tone) {
     HomeEntryTone.Warning  -> Color(0xFFB26A00)
     HomeEntryTone.Error    -> MaterialTheme.colorScheme.error
     HomeEntryTone.Neutral  -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Composable
+private fun networkSummary(uiState: DiagnosticsUiState): HomeSummaryState {
+    val context = LocalContext.current
+    val hasConnectivityFailure = uiState.testResult?.steps?.any { !it.success } == true
+    val hasLimitedWebsites = uiState.websiteAccessibilityResults.any {
+        it.status.toOutcome() == WebsiteAccessibilityOutcome.Limited
+    }
+    val hasUnstableWebsites = uiState.websiteAccessibilityResults.any {
+        it.status.toOutcome() == WebsiteAccessibilityOutcome.Unstable
+    }
+    val hasKeyResults = uiState.testResult != null ||
+        uiState.dnsAnalysisResult != null ||
+        uiState.websiteAccessibilityResults.isNotEmpty() ||
+        uiState.tlsAnalysisResult != null ||
+        uiState.sniMitmAnalysisResult != null
+
+    return when {
+        uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.MitmSuspected ||
+            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.TlsInterceptionSuspected -> {
+            HomeSummaryState(
+                title = context.getString(R.string.home_summary_tampering_title),
+                description = context.getString(R.string.home_summary_tampering_message),
+                tone = HomeEntryTone.Error,
+            )
+        }
+
+        uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.SniFilteringSuspected ||
+            uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.TlsInterceptionSuspected ||
+            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.UnusualCertificateChain ||
+            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.TlsDowngradeSuspected ||
+            uiState.dnsAnalysisResult?.status == DnsAnalysisStatus.Blocked ||
+            hasLimitedWebsites ||
+            hasConnectivityFailure -> {
+            HomeSummaryState(
+                title = context.getString(R.string.home_summary_limited_title),
+                description = context.getString(R.string.home_summary_limited_message),
+                tone = HomeEntryTone.Warning,
+            )
+        }
+
+        !hasKeyResults ||
+            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.Inconclusive ||
+            uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.Inconclusive ||
+            hasUnstableWebsites -> {
+            HomeSummaryState(
+                title = context.getString(R.string.home_summary_attention_title),
+                description = context.getString(R.string.home_summary_attention_message),
+                tone = HomeEntryTone.Neutral,
+                showRunCheckAction = true,
+            )
+        }
+
+        else -> {
+            HomeSummaryState(
+                title = context.getString(R.string.home_summary_ok_title),
+                description = context.getString(R.string.home_summary_ok_message),
+                tone = HomeEntryTone.Positive,
+            )
+        }
+    }
 }
 
 @Composable
@@ -437,6 +533,108 @@ private fun websiteStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
             HomeEntryTone.Warning,
         )
         else -> HomeEntryStatus(context.getString(R.string.status_ok), HomeEntryTone.Positive)
+    }
+}
+
+@Composable
+private fun HomeSectionTitle(
+    title: String,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+    )
+}
+
+@Composable
+private fun NetworkSummaryCard(
+    summary: HomeSummaryState,
+    isRunning: Boolean,
+    onRunCheck: () -> Unit,
+) {
+    val context = LocalContext.current
+    val isDarkTheme = isSystemInDarkTheme()
+    val (containerColor, contentColor) = when (summary.tone) {
+        HomeEntryTone.Positive -> {
+            if (isDarkTheme) Color(0xFF173526) to Color(0xFF8DD8A8) else Color(0xFFE8F4EA) to Color(0xFF1E7B46)
+        }
+        HomeEntryTone.Warning -> {
+            if (isDarkTheme) Color(0xFF3A2B17) to Color(0xFFF2C27B) else Color(0xFFFFF2E0) to Color(0xFF9A5E00)
+        }
+        HomeEntryTone.Error -> {
+            if (isDarkTheme) Color(0xFF3F1D1E) to Color(0xFFF2B8B5) else Color(0xFFFDECEC) to Color(0xFFB3261E)
+        }
+        HomeEntryTone.Neutral -> {
+            if (isDarkTheme) Color(0xFF23262C) to Color(0xFFE2E2E6) else Color(0xFFF1EFF8) to Color(0xFF4B4F58)
+        }
+    }
+    val icon = when (summary.tone) {
+        HomeEntryTone.Positive -> Icons.Filled.CheckCircle
+        HomeEntryTone.Warning -> Icons.Filled.Info
+        HomeEntryTone.Error -> Icons.Filled.Info
+        HomeEntryTone.Neutral -> Icons.Filled.Info
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor,
+        ),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(contentColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = contentColor,
+                )
+                Text(
+                    text = summary.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor.copy(alpha = 0.9f),
+                )
+                if (summary.showRunCheckAction) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onRunCheck,
+                        enabled = !isRunning,
+                    ) {
+                        Text(
+                            text = if (isRunning) {
+                                context.getString(R.string.home_summary_running_check)
+                            } else {
+                                context.getString(R.string.home_summary_run_check)
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -569,6 +767,7 @@ fun DiagnosticsHomeScreenPreview() {
         DiagnosticsHomeScreen(
             uiState = DiagnosticsUiState(),
             scrollState = rememberScrollState(),
+            onRunHomeSummaryCheck = {},
             onOpenOverview = {},
             onOpenDnsAnalysis = {},
             onOpenConnectivityTest = {},

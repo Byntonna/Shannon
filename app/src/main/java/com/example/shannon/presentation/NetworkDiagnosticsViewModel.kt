@@ -155,6 +155,68 @@ class NetworkDiagnosticsViewModel(
         }
     }
 
+    fun launchHomeSummaryCheck() {
+        if (_uiState.value.isRunningHomeSummaryCheck) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isRunningHomeSummaryCheck = true,
+                    isRunning = true,
+                    isRunningWebsiteAccessibility = true,
+                    isRunningDnsAnalysis = true,
+                    isRunningTlsAnalysis = true,
+                    isRunningSniMitmAnalysis = true,
+                )
+            }
+
+            val initialState = _uiState.value
+            val websiteTargets = summaryWebsiteTargets(initialState)
+
+            val overviewDeferred = async { runCatching { readNetworkOverview() } }
+            val connectivityDeferred = async {
+                runCatching { runConnectivityTest(initialState.selectedTargetPreset) }
+            }
+            val websiteDeferred = async {
+                runCatching { runWebsiteAccessibilityTest(websiteTargets) }
+            }
+            val dnsDeferred = async {
+                runCatching { runDnsAnalysis(initialState.dnsAnalysisDomain) }
+            }
+            val tlsDeferred = async { runCatching { runTlsAnalysis() } }
+            val sniDeferred = async { runCatching { runSniMitmAnalysis() } }
+
+            val overviewResult = overviewDeferred.await()
+            val connectivityResult = connectivityDeferred.await()
+            val websiteResult = websiteDeferred.await()
+            val dnsResult = dnsDeferred.await()
+            val tlsResult = tlsDeferred.await()
+            val sniResult = sniDeferred.await()
+
+            _uiState.update { state ->
+                state.copy(
+                    overview = overviewResult.getOrNull() ?: state.overview,
+                    testResult = connectivityResult.getOrNull() ?: state.testResult,
+                    isRunning = false,
+                    websiteAccessibilityResults = websiteResult.getOrNull() ?: state.websiteAccessibilityResults,
+                    isRunningWebsiteAccessibility = false,
+                    dnsAnalysisResult = dnsResult.getOrNull() ?: state.dnsAnalysisResult,
+                    isRunningDnsAnalysis = false,
+                    tlsAnalysisResult = tlsResult.getOrNull() ?: state.tlsAnalysisResult,
+                    isRunningTlsAnalysis = false,
+                    sniMitmAnalysisResult = sniResult.getOrNull() ?: state.sniMitmAnalysisResult,
+                    isRunningSniMitmAnalysis = false,
+                    isRunningHomeSummaryCheck = false,
+                )
+            }
+
+            connectivityResult.getOrNull()?.let { persistHomeStatus(connectivityDashboardStatus(it)) }
+            dnsResult.getOrNull()?.let { persistHomeStatus(dnsDashboardStatus(it)) }
+            tlsResult.getOrNull()?.let { persistHomeStatus(tlsDashboardStatus(it)) }
+            sniResult.getOrNull()?.let { persistHomeStatus(sniDashboardStatus(it)) }
+        }
+    }
+
     fun launchDnsAnalysis() {
         if (_uiState.value.isRunningDnsAnalysis) return
         viewModelScope.launch {
@@ -707,6 +769,14 @@ class NetworkDiagnosticsViewModel(
                 url = finalUrl,
             )
         }.getOrNull()
+    }
+
+    private fun summaryWebsiteTargets(state: DiagnosticsUiState): List<WebsiteAccessibilityTarget> {
+        return if (state.customWebsiteTargets.isNotEmpty()) {
+            state.customWebsiteTargets
+        } else {
+            state.selectedWebsitePreset.targets
+        }.distinctBy { it.url }
     }
 
     private fun snapshotReport(state: DiagnosticsUiState): NetworkDiagnosticReport {

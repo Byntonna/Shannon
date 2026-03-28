@@ -77,6 +77,7 @@ fun NetworkDiagnosticsScreen(
     contentPadding: PaddingValues,
     onOpenScreen: (DiagnosticsDestination) -> Unit,
     onNavigateBack: () -> Unit,
+    onRunHomeSummaryCheck: () -> Unit,
     onRefreshOverview: () -> Unit,
     onRunConnectivityTest: () -> Unit,
     onSelectTargetPreset: (ConnectivityTargetPreset) -> Unit,
@@ -158,6 +159,7 @@ fun NetworkDiagnosticsScreen(
                 DiagnosticsDestination.Home -> DiagnosticsHomeScreen(
                     uiState = uiState,
                     scrollState = homeScrollState,
+                    onRunHomeSummaryCheck = onRunHomeSummaryCheck,
                     onOpenOverview = { onOpenScreen(DiagnosticsDestination.Overview) },
                     onOpenConnectivityTest = { onOpenScreen(DiagnosticsDestination.ConnectivityTest) },
                     onOpenDnsAnalysis = { onOpenScreen(DiagnosticsDestination.DnsAnalysis) },

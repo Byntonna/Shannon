@@ -394,6 +394,18 @@
 
     <string name="home_about_subtitle">Информация о приложении, версии и проекте</string>
     <string name="home_about_title">@string/destination_about</string>
+    <string name="home_summary_section_title">Состояние сети</string>
+    <string name="home_tools_section_title">Инструменты</string>
+    <string name="home_summary_ok_title">Всё в порядке</string>
+    <string name="home_summary_ok_message">Интернет работает, явных признаков ограничений или подмены не обнаружено</string>
+    <string name="home_summary_attention_title">Нужна проверка</string>
+    <string name="home_summary_attention_message">Запустите основные проверки, чтобы получить короткую сводку о состоянии сети.</string>
+    <string name="home_summary_run_check">Запустить проверку</string>
+    <string name="home_summary_running_check">Запуск проверки...</string>
+    <string name="home_summary_limited_title">Есть ограничения</string>
+    <string name="home_summary_limited_message">Часть проверок указывает на возможные ограничения или выборочную блокировку.</string>
+    <string name="home_summary_tampering_title">Есть подозрение на подмену</string>
+    <string name="home_summary_tampering_message">Обнаружены признаки перехвата или подмены HTTPS-соединения.</string>
     <string name="home_connectivity_subtitle">Проверки DNS, TCP, TLS и HTTP для целевой конечной точки</string>
     <string name="home_connectivity_title">@string/destination_connectivity_test</string>
     <string name="home_dns_subtitle">Сравнение системных и публичных DNS-резолверов</string>

@@ -24,6 +24,7 @@ data class DiagnosticsUiState(
     val currentScreen: DiagnosticsDestination = DiagnosticsDestination.Home,
     val persistedHomeStatuses: Map<HomeDashboardStatusKey, HomeDashboardStatus> = emptyMap(),
     val overview: NetworkOverview? = null,
+    val isRunningHomeSummaryCheck: Boolean = false,
     val testResult: ConnectivityTestResult? = null,
     val isRunning: Boolean = false,
     val selectedTargetPreset: ConnectivityTargetPreset = ConnectivityTargetPreset.Standard,
