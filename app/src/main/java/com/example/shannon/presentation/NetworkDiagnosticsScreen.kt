@@ -52,6 +52,7 @@ import com.example.shannon.titleResId
 import com.example.shannon.presentation.components.ConnectivityTestScreen
 import com.example.shannon.presentation.components.DnsAnalysisScreen
 import com.example.shannon.presentation.components.DiagnosticsHomeScreen
+import com.example.shannon.presentation.components.HomeSummaryDetailsScreen
 import com.example.shannon.presentation.components.AboutShannonScreen
 import com.example.shannon.presentation.components.OverviewDetailsScreen
 import com.example.shannon.presentation.components.PortScanScreen
@@ -160,6 +161,9 @@ fun NetworkDiagnosticsScreen(
                     uiState = uiState,
                     scrollState = homeScrollState,
                     onRunHomeSummaryCheck = onRunHomeSummaryCheck,
+                    onOpenSummaryDetails = {
+                        onOpenScreen(DiagnosticsDestination.HomeSummary)
+                    },
                     onOpenOverview = { onOpenScreen(DiagnosticsDestination.Overview) },
                     onOpenConnectivityTest = { onOpenScreen(DiagnosticsDestination.ConnectivityTest) },
                     onOpenDnsAnalysis = { onOpenScreen(DiagnosticsDestination.DnsAnalysis) },
@@ -188,6 +192,11 @@ fun NetworkDiagnosticsScreen(
                         onOpenScreen(DiagnosticsDestination.WebsiteAccessibility)
                     },
                     onOpenAboutShannon = onOpenAboutShannon,
+                )
+                DiagnosticsDestination.HomeSummary -> HomeSummaryDetailsScreen(
+                    uiState = uiState,
+                    onRunHomeSummaryCheck = onRunHomeSummaryCheck,
+                    onOpenScreen = onOpenScreen,
                 )
                 DiagnosticsDestination.Overview -> OverviewDetailsScreen(
                     overview = uiState.overview,

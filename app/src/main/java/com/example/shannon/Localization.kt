@@ -28,6 +28,7 @@ import java.util.Locale
 @StringRes
 fun DiagnosticsDestination.titleResId(): Int = when (this) {
     DiagnosticsDestination.Home -> R.string.app_name
+    DiagnosticsDestination.HomeSummary -> R.string.screen_network_status
     DiagnosticsDestination.Overview -> R.string.screen_network_overview
     DiagnosticsDestination.ConnectivityTest -> R.string.screen_connectivity_test
     DiagnosticsDestination.DnsAnalysis -> R.string.screen_dns_analysis

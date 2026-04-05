@@ -3,15 +3,13 @@ package com.example.shannon.presentation
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.shannon.ShannonApplication
 import androidx.lifecycle.viewModelScope
 import com.example.shannon.R
+import com.example.shannon.data.HomeDashboardStatusStore
 import com.example.shannon.millisecondsText
 import com.example.shannon.portScanSummaryText
 import com.example.shannon.titleResId
-import com.example.shannon.data.AndroidNetworkDiagnosticsRepository
-import com.example.shannon.data.AndroidPortScanRepository
-import com.example.shannon.data.HomeDashboardStatusStore
-import com.example.shannon.data.ShannonDatabase
 import com.example.shannon.domain.model.ConnectivityTargetPreset
 import com.example.shannon.domain.model.DnsAnalysisResult
 import com.example.shannon.domain.model.DnsAnalysisStatus
@@ -99,6 +97,7 @@ class NetworkDiagnosticsViewModel(
         _uiState.update { it.copy(currentScreen = destination) }
         when (destination) {
             DiagnosticsDestination.Home -> Unit
+            DiagnosticsDestination.HomeSummary -> Unit
             DiagnosticsDestination.Overview -> refreshOverview()
             DiagnosticsDestination.DnsAnalysis -> {
                 if (_uiState.value.dnsAnalysisResult == null && !_uiState.value.isRunningDnsAnalysis) {
@@ -958,27 +957,21 @@ class NetworkDiagnosticsViewModel(
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            val repository = AndroidNetworkDiagnosticsRepository(applicationContext)
-            val portScanRepository = AndroidPortScanRepository(applicationContext)
-            val database = ShannonDatabase.getInstance(applicationContext)
-            val homeDashboardStatusStore = HomeDashboardStatusStore(
-                context = applicationContext,
-                dashboardStatusDao = database.dashboardStatusDao(),
-            )
+            val appContainer = (applicationContext as ShannonApplication).appContainer
             return NetworkDiagnosticsViewModel(
                 appContext = applicationContext,
-                readNetworkOverview = ReadNetworkOverviewUseCase(repository),
-                runConnectivityTest = RunConnectivityTestUseCase(repository),
-                runWebsiteAccessibilityTest = RunWebsiteAccessibilityTestUseCase(repository),
-                runDnsAnalysis = RunDnsAnalysisUseCase(repository),
-                runProtocolAnalysis = RunProtocolAnalysisUseCase(repository),
-                runTlsAnalysis = RunTlsAnalysisUseCase(repository),
-                runSniMitmAnalysis = RunSniMitmAnalysisUseCase(repository),
-                scanPort = ScanPortUseCase(portScanRepository),
-                runPing = RunPingUseCase(repository),
-                runTraceroute = RunTracerouteUseCase(repository),
-                exportDiagnosticReport = ExportReportUseCase(repository),
-                homeDashboardStatusStore = homeDashboardStatusStore,
+                readNetworkOverview = appContainer.readNetworkOverview,
+                runConnectivityTest = appContainer.runConnectivityTest,
+                runWebsiteAccessibilityTest = appContainer.runWebsiteAccessibilityTest,
+                runDnsAnalysis = appContainer.runDnsAnalysis,
+                runProtocolAnalysis = appContainer.runProtocolAnalysis,
+                runTlsAnalysis = appContainer.runTlsAnalysis,
+                runSniMitmAnalysis = appContainer.runSniMitmAnalysis,
+                scanPort = appContainer.scanPort,
+                runPing = appContainer.runPing,
+                runTraceroute = appContainer.runTraceroute,
+                exportDiagnosticReport = appContainer.exportDiagnosticReport,
+                homeDashboardStatusStore = appContainer.dashboardStatusStore,
             ) as T
         }
     }
