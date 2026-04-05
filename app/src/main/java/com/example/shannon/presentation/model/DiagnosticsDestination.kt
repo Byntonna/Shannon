@@ -2,6 +2,7 @@ package com.example.shannon.presentation.model
 
 enum class DiagnosticsDestination {
     Home,
+    HomeSummary,
     Overview,
     ConnectivityTest,
     DnsAnalysis,

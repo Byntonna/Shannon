@@ -58,9 +58,19 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Connection
+import okhttp3.ConnectionPool
+import okhttp3.EventListener
+import okhttp3.Handshake
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
 import java.io.ByteArrayOutputStream
 import java.io.BufferedReader
 import java.io.File
+import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -114,6 +124,27 @@ private data class ResolvedHost(
     val dnsTimeMs: Long,
 )
 
+private data class OkHttpProbeMetrics(
+    var dnsTimeMs: Long? = null,
+    var dnsResolvedIp: String? = null,
+    var tcpTimeMs: Long? = null,
+    var tcpResolvedIp: String? = null,
+    var tlsTimeMs: Long? = null,
+    var tlsProtocol: String? = null,
+    var httpTimeMs: Long? = null,
+    var httpStatusCode: Int? = null,
+    var httpProtocol: String? = null,
+    var failure: Throwable? = null,
+    var dnsStarted: Boolean = false,
+    var dnsFinished: Boolean = false,
+    var connectStarted: Boolean = false,
+    var connectFinished: Boolean = false,
+    var secureConnectStarted: Boolean = false,
+    var secureConnectFinished: Boolean = false,
+) {
+    fun resolvedIpOrNull(): String? = tcpResolvedIp ?: dnsResolvedIp
+}
+
 private data class OpenTlsProbe(
     val socket: SSLSocket,
     val resolvedIp: String,
@@ -164,6 +195,103 @@ private val sniAnalysisEndpoints = listOf(
 private val latencyRegex = Regex("""time[=<]([0-9.]+)""")
 private val tracerouteIpRegex = Regex("""(?i)\bfrom ([0-9a-f:.]+)""")
 
+private class OkHttpConnectivityEventListener(
+    private val metrics: OkHttpProbeMetrics,
+) : EventListener() {
+    private var dnsStartedAtNs: Long? = null
+    private var connectStartedAtNs: Long? = null
+    private var secureConnectStartedAtNs: Long? = null
+    private var requestHeadersStartedAtNs: Long? = null
+
+    override fun dnsStart(
+        call: Call,
+        domainName: String,
+    ) {
+        metrics.dnsStarted = true
+        dnsStartedAtNs = System.nanoTime()
+    }
+
+    override fun dnsEnd(
+        call: Call,
+        domainName: String,
+        inetAddressList: List<InetAddress>,
+    ) {
+        metrics.dnsFinished = true
+        metrics.dnsTimeMs = elapsedMillis(dnsStartedAtNs)
+        metrics.dnsResolvedIp = inetAddressList.firstOrNull()?.hostAddress
+    }
+
+    override fun connectStart(
+        call: Call,
+        inetSocketAddress: InetSocketAddress,
+        proxy: java.net.Proxy,
+    ) {
+        metrics.connectStarted = true
+        connectStartedAtNs = System.nanoTime()
+        metrics.tcpResolvedIp = inetSocketAddress.address?.hostAddress ?: inetSocketAddress.hostString
+    }
+
+    override fun connectEnd(
+        call: Call,
+        inetSocketAddress: InetSocketAddress,
+        proxy: java.net.Proxy,
+        protocol: Protocol?,
+    ) {
+        metrics.connectFinished = true
+        metrics.tcpTimeMs = elapsedMillis(connectStartedAtNs)
+        metrics.tcpResolvedIp = inetSocketAddress.address?.hostAddress ?: inetSocketAddress.hostString
+        metrics.httpProtocol = protocol?.toString() ?: metrics.httpProtocol
+    }
+
+    override fun secureConnectStart(call: Call) {
+        metrics.secureConnectStarted = true
+        secureConnectStartedAtNs = System.nanoTime()
+    }
+
+    override fun secureConnectEnd(
+        call: Call,
+        handshake: Handshake?,
+    ) {
+        metrics.secureConnectFinished = true
+        metrics.tlsTimeMs = elapsedMillis(secureConnectStartedAtNs)
+        metrics.tlsProtocol = handshake?.tlsVersion?.javaName
+    }
+
+    override fun requestHeadersStart(call: Call) {
+        requestHeadersStartedAtNs = System.nanoTime()
+    }
+
+    override fun responseHeadersEnd(
+        call: Call,
+        response: Response,
+    ) {
+        metrics.httpTimeMs = elapsedMillis(requestHeadersStartedAtNs)
+        metrics.httpStatusCode = response.code
+        metrics.httpProtocol = response.protocol.toString()
+        metrics.tlsProtocol = metrics.tlsProtocol ?: response.handshake?.tlsVersion?.javaName
+    }
+
+    override fun callFailed(
+        call: Call,
+        ioe: IOException,
+    ) {
+        metrics.failure = ioe
+        if (metrics.connectStarted && !metrics.connectFinished) {
+            metrics.tcpTimeMs = elapsedMillis(connectStartedAtNs)
+        }
+        if (metrics.secureConnectStarted && !metrics.secureConnectFinished) {
+            metrics.tlsTimeMs = elapsedMillis(secureConnectStartedAtNs)
+        }
+        if (requestHeadersStartedAtNs != null && metrics.httpTimeMs == null) {
+            metrics.httpTimeMs = elapsedMillis(requestHeadersStartedAtNs)
+        }
+    }
+
+    private fun elapsedMillis(startedAtNs: Long?): Long? {
+        return startedAtNs?.let { (System.nanoTime() - it).toMillis() }
+    }
+}
+
 class AndroidNetworkDiagnosticsRepository(
     private val context: Context,
 ) : NetworkDiagnosticsRepository {
@@ -171,6 +299,17 @@ class AndroidNetworkDiagnosticsRepository(
         context.getString(resId, *args.toTypedArray())
     }
     private val http3Probe by lazy { CronetHttp3Probe(context) }
+    private val okHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .callTimeout(10, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .retryOnConnectionFailure(false)
+            .build()
+    }
 
     private val systemTrustManager: X509TrustManager by lazy {
         val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
@@ -467,141 +606,165 @@ class AndroidNetworkDiagnosticsRepository(
         fallbackUsed: Boolean,
         fallbackReason: String?,
     ): ConnectivityTestResult {
-        val host = URL(target.url).host
+        val metrics = OkHttpProbeMetrics()
         val steps = mutableListOf<ConnectivityStepResult>()
+        runCatching {
+            executeOkHttpConnectivityProbe(target.url, metrics).use { response ->
+                metrics.httpStatusCode = response.code
+                metrics.httpProtocol = response.protocol.toString()
+                metrics.tlsProtocol = metrics.tlsProtocol ?: response.handshake?.tlsVersion?.javaName
+            }
+        }.onFailure { metrics.failure = it }
 
-        val dnsResult = runCatching {
-            var address: InetAddress? = null
-            val elapsed = measureNanoTime {
-                address = InetAddress.getByName(host)
-            }.toMillis()
+        val dnsStep = buildDnsConnectivityStep(metrics)
+        steps += dnsStep
+        if (!dnsStep.success) {
+            return connectivityResult(
+                target = target,
+                steps = steps,
+                fallbackUsed = fallbackUsed,
+                fallbackReason = fallbackReason,
+            )
+        }
+
+        val tcpStep = buildTcpConnectivityStep(metrics)
+        steps += tcpStep
+        if (!tcpStep.success) {
+            return connectivityResult(
+                target = target,
+                steps = steps,
+                fallbackUsed = fallbackUsed,
+                fallbackReason = fallbackReason,
+            )
+        }
+
+        val tlsStep = buildTlsConnectivityStep(metrics)
+        steps += tlsStep
+        if (!tlsStep.success) {
+            return connectivityResult(
+                target = target,
+                steps = steps,
+                fallbackUsed = fallbackUsed,
+                fallbackReason = fallbackReason,
+            )
+        }
+
+        steps += buildHttpConnectivityStep(metrics)
+        return connectivityResult(
+            target = target,
+            steps = steps,
+            fallbackUsed = fallbackUsed,
+            fallbackReason = fallbackReason,
+        )
+    }
+
+    private fun executeOkHttpConnectivityProbe(
+        targetUrl: String,
+        metrics: OkHttpProbeMetrics,
+    ): Response {
+        val listener = OkHttpConnectivityEventListener(metrics)
+        val client = okHttpClient.newBuilder()
+            .eventListener(listener)
+            .connectionPool(ConnectionPool(0, 1, TimeUnit.MILLISECONDS))
+            .build()
+        val request = Request.Builder()
+            .url(targetUrl)
+            .get()
+            .header("Connection", "close")
+            .build()
+        return client.newCall(request).execute()
+    }
+
+    private fun buildDnsConnectivityStep(metrics: OkHttpProbeMetrics): ConnectivityStepResult {
+        val message = metrics.failure?.message ?: context.getString(R.string.connectivity_dns_failed)
+        return if (metrics.dnsFinished && metrics.dnsTimeMs != null) {
             ConnectivityStepResult(
                 stage = context.getString(R.string.stage_dns),
                 success = true,
                 summary = context.getString(
                     R.string.connectivity_dns_success,
-                    address?.hostAddress ?: context.getString(R.string.connectivity_dns_resolved),
-                    elapsed,
+                    metrics.dnsResolvedIp ?: context.getString(R.string.connectivity_dns_resolved),
+                    metrics.dnsTimeMs ?: 0,
                 ),
             )
-        }.getOrElse { error ->
-            return ConnectivityTestResult(
-                steps = listOf(
-                    ConnectivityStepResult(
-                        context.getString(R.string.stage_dns),
-                        false,
-                        error.message ?: context.getString(R.string.connectivity_dns_failed),
-                    )
+        } else {
+            ConnectivityStepResult(
+                stage = context.getString(R.string.stage_dns),
+                success = false,
+                summary = message,
+            )
+        }
+    }
+
+    private fun buildTcpConnectivityStep(metrics: OkHttpProbeMetrics): ConnectivityStepResult {
+        val message = metrics.failure?.message ?: context.getString(R.string.connectivity_tcp_failed)
+        return if (metrics.connectFinished && metrics.tcpTimeMs != null) {
+            ConnectivityStepResult(
+                stage = context.getString(R.string.stage_tcp),
+                success = true,
+                summary = context.getString(
+                    R.string.connectivity_tcp_success,
+                    metrics.resolvedIpOrNull() ?: context.getString(R.string.connectivity_dns_resolved),
+                    metrics.tcpTimeMs ?: 0,
                 ),
-                checkedAt = nowTimestamp(),
-                endpointLabel = target.label,
-                endpointUrl = target.url,
-                fallbackUsed = fallbackUsed,
-                fallbackReason = fallbackReason,
             )
-        }
-        steps += dnsResult
-
-        val resolvedIp = dnsResult.summary
-            .substringAfter(context.getString(R.string.connectivity_dns_success_prefix))
-            .substringBefore(" in")
-
-        val tcpResult = runCatching {
-            val elapsed = measureNanoTime {
-                Socket().use { socket ->
-                    socket.connect(InetSocketAddress(host, 443), 5_000)
-                }
-            }.toMillis()
+        } else {
             ConnectivityStepResult(
-                context.getString(R.string.stage_tcp),
-                true,
-                context.getString(R.string.connectivity_tcp_success, resolvedIp, elapsed),
-            )
-        }.getOrElse { error ->
-            steps += ConnectivityStepResult(
-                context.getString(R.string.stage_tcp),
-                false,
-                error.message ?: context.getString(R.string.connectivity_tcp_failed),
-            )
-            return ConnectivityTestResult(
-                steps = steps,
-                checkedAt = nowTimestamp(),
-                endpointLabel = target.label,
-                endpointUrl = target.url,
-                fallbackUsed = fallbackUsed,
-                fallbackReason = fallbackReason,
+                stage = context.getString(R.string.stage_tcp),
+                success = false,
+                summary = message,
             )
         }
-        steps += tcpResult
+    }
 
-        val tlsResult = runCatching {
-            val sslFactory = SSLSocketFactory.getDefault() as SSLSocketFactory
-            var protocol = context.getString(R.string.stage_tls)
-            val elapsed = measureNanoTime {
-                Socket().use { rawSocket ->
-                    rawSocket.connect(InetSocketAddress(host, 443), 5_000)
-                    val sslSocket = sslFactory.createSocket(rawSocket, host, 443, true)
-                        as javax.net.ssl.SSLSocket
-                    sslSocket.use {
-                        it.soTimeout = 5_000
-                        it.useClientMode = true
-                        it.startHandshake()
-                        protocol = it.session.protocol ?: context.getString(R.string.stage_tls)
-                    }
-                }
-            }.toMillis()
+    private fun buildTlsConnectivityStep(metrics: OkHttpProbeMetrics): ConnectivityStepResult {
+        val message = metrics.failure?.message ?: context.getString(R.string.connectivity_tls_failed)
+        return if (metrics.secureConnectFinished) {
             ConnectivityStepResult(
-                context.getString(R.string.stage_tls),
-                true,
-                context.getString(R.string.connectivity_tls_success, protocol, elapsed),
+                stage = context.getString(R.string.stage_tls),
+                success = true,
+                summary = context.getString(
+                    R.string.connectivity_tls_success,
+                    metrics.tlsProtocol ?: context.getString(R.string.stage_tls),
+                    metrics.tlsTimeMs ?: 0,
+                ),
             )
-        }.getOrElse { error ->
-            steps += ConnectivityStepResult(
-                context.getString(R.string.stage_tls),
-                false,
-                error.message ?: context.getString(R.string.connectivity_tls_failed),
-            )
-            return ConnectivityTestResult(
-                steps = steps,
-                checkedAt = nowTimestamp(),
-                endpointLabel = target.label,
-                endpointUrl = target.url,
-                fallbackUsed = fallbackUsed,
-                fallbackReason = fallbackReason,
+        } else {
+            ConnectivityStepResult(
+                stage = context.getString(R.string.stage_tls),
+                success = false,
+                summary = message,
             )
         }
-        steps += tlsResult
+    }
 
-        val httpResult = runCatching {
-            var responseCode = -1
-            val elapsed = measureNanoTime {
-                val connection = (URL(target.url).openConnection() as java.net.HttpURLConnection).apply {
-                    connectTimeout = 5_000
-                    readTimeout = 5_000
-                    requestMethod = "GET"
-                    instanceFollowRedirects = true
-                }
-                try {
-                    responseCode = connection.responseCode
-                } finally {
-                    connection.disconnect()
-                }
-            }.toMillis()
-            val success = responseCode in 200..399
+    private fun buildHttpConnectivityStep(metrics: OkHttpProbeMetrics): ConnectivityStepResult {
+        val responseCode = metrics.httpStatusCode
+        return if (responseCode != null) {
             ConnectivityStepResult(
                 stage = "HTTP",
-                success = success,
-                summary = context.getString(R.string.connectivity_http_success, responseCode, elapsed),
+                success = responseCode in 200..399,
+                summary = context.getString(
+                    R.string.connectivity_http_success,
+                    responseCode,
+                    metrics.httpTimeMs ?: 0,
+                ),
             )
-        }.getOrElse { error ->
+        } else {
             ConnectivityStepResult(
-                "HTTP",
-                false,
-                error.message ?: context.getString(R.string.connectivity_http_failed),
+                stage = "HTTP",
+                success = false,
+                summary = metrics.failure?.message ?: context.getString(R.string.connectivity_http_failed),
             )
         }
-        steps += httpResult
+    }
 
+    private fun connectivityResult(
+        target: ConnectivityTarget,
+        steps: List<ConnectivityStepResult>,
+        fallbackUsed: Boolean,
+        fallbackReason: String?,
+    ): ConnectivityTestResult {
         return ConnectivityTestResult(
             steps = steps,
             checkedAt = nowTimestamp(),

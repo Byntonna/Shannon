@@ -52,6 +52,9 @@ import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
 import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
 import com.example.shannon.domain.model.toOutcome
 import com.example.shannon.presentation.model.DiagnosticsUiState
+import com.example.shannon.presentation.model.HomeSummaryState
+import com.example.shannon.presentation.model.HomeSummaryTone
+import com.example.shannon.presentation.model.homeSummaryState
 import com.example.shannon.ui.theme.ShannonTheme
 import kotlin.math.roundToInt
 
@@ -74,6 +77,7 @@ fun DiagnosticsHomeScreen(
     uiState: DiagnosticsUiState,
     scrollState: ScrollState,
     onRunHomeSummaryCheck: () -> Unit,
+    onOpenSummaryDetails: () -> Unit,
     onOpenOverview: () -> Unit,
     onOpenDnsAnalysis: () -> Unit,
     onOpenConnectivityTest: () -> Unit,
@@ -190,7 +194,7 @@ fun DiagnosticsHomeScreen(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        val summary = networkSummary(uiState)
+        val summary = uiState.homeSummaryState()
 
         Column(
             modifier = Modifier
@@ -210,6 +214,7 @@ fun DiagnosticsHomeScreen(
                     summary = summary,
                     isRunning = uiState.isRunningHomeSummaryCheck,
                     onRunCheck = onRunHomeSummaryCheck,
+                    onOpenDetails = onOpenSummaryDetails,
                 )
             }
             Column(
@@ -397,13 +402,6 @@ private data class HomeEntryStatus(
     val tone: HomeEntryTone,
 )
 
-private data class HomeSummaryState(
-    val title: String,
-    val description: String,
-    val tone: HomeEntryTone,
-    val showRunCheckAction: Boolean = false,
-)
-
 private enum class HomeEntryTone {
     Positive,
     Warning,
@@ -417,68 +415,6 @@ private fun statusColor(tone: HomeEntryTone): Color = when (tone) {
     HomeEntryTone.Warning  -> Color(0xFFB26A00)
     HomeEntryTone.Error    -> MaterialTheme.colorScheme.error
     HomeEntryTone.Neutral  -> MaterialTheme.colorScheme.onSurfaceVariant
-}
-
-@Composable
-private fun networkSummary(uiState: DiagnosticsUiState): HomeSummaryState {
-    val context = LocalContext.current
-    val hasConnectivityFailure = uiState.testResult?.steps?.any { !it.success } == true
-    val hasLimitedWebsites = uiState.websiteAccessibilityResults.any {
-        it.status.toOutcome() == WebsiteAccessibilityOutcome.Limited
-    }
-    val hasUnstableWebsites = uiState.websiteAccessibilityResults.any {
-        it.status.toOutcome() == WebsiteAccessibilityOutcome.Unstable
-    }
-    val hasKeyResults = uiState.testResult != null ||
-        uiState.dnsAnalysisResult != null ||
-        uiState.websiteAccessibilityResults.isNotEmpty() ||
-        uiState.tlsAnalysisResult != null ||
-        uiState.sniMitmAnalysisResult != null
-
-    return when {
-        uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.MitmSuspected ||
-            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.TlsInterceptionSuspected -> {
-            HomeSummaryState(
-                title = context.getString(R.string.home_summary_tampering_title),
-                description = context.getString(R.string.home_summary_tampering_message),
-                tone = HomeEntryTone.Error,
-            )
-        }
-
-        uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.SniFilteringSuspected ||
-            uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.TlsInterceptionSuspected ||
-            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.UnusualCertificateChain ||
-            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.TlsDowngradeSuspected ||
-            uiState.dnsAnalysisResult?.status == DnsAnalysisStatus.Blocked ||
-            hasLimitedWebsites ||
-            hasConnectivityFailure -> {
-            HomeSummaryState(
-                title = context.getString(R.string.home_summary_limited_title),
-                description = context.getString(R.string.home_summary_limited_message),
-                tone = HomeEntryTone.Warning,
-            )
-        }
-
-        !hasKeyResults ||
-            uiState.tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.Inconclusive ||
-            uiState.sniMitmAnalysisResult?.status == SniAnalysisStatus.Inconclusive ||
-            hasUnstableWebsites -> {
-            HomeSummaryState(
-                title = context.getString(R.string.home_summary_attention_title),
-                description = context.getString(R.string.home_summary_attention_message),
-                tone = HomeEntryTone.Neutral,
-                showRunCheckAction = true,
-            )
-        }
-
-        else -> {
-            HomeSummaryState(
-                title = context.getString(R.string.home_summary_ok_title),
-                description = context.getString(R.string.home_summary_ok_message),
-                tone = HomeEntryTone.Positive,
-            )
-        }
-    }
 }
 
 @Composable
@@ -551,10 +487,12 @@ private fun NetworkSummaryCard(
     summary: HomeSummaryState,
     isRunning: Boolean,
     onRunCheck: () -> Unit,
+    onOpenDetails: () -> Unit,
 ) {
     val context = LocalContext.current
     val isDarkTheme = isSystemInDarkTheme()
-    val (containerColor, contentColor) = when (summary.tone) {
+    val summaryTone = summary.tone.toEntryTone()
+    val (containerColor, contentColor) = when (summaryTone) {
         HomeEntryTone.Positive -> {
             if (isDarkTheme) Color(0xFF173526) to Color(0xFF8DD8A8) else Color(0xFFE8F4EA) to Color(0xFF1E7B46)
         }
@@ -568,7 +506,7 @@ private fun NetworkSummaryCard(
             if (isDarkTheme) Color(0xFF23262C) to Color(0xFFE2E2E6) else Color(0xFFF1EFF8) to Color(0xFF4B4F58)
         }
     }
-    val icon = when (summary.tone) {
+    val icon = when (summaryTone) {
         HomeEntryTone.Positive -> Icons.Filled.CheckCircle
         HomeEntryTone.Warning -> Icons.Filled.Info
         HomeEntryTone.Error -> Icons.Filled.Info
@@ -576,7 +514,9 @@ private fun NetworkSummaryCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenDetails),
         colors = CardDefaults.cardColors(
             containerColor = containerColor,
         ),
@@ -609,13 +549,19 @@ private fun NetworkSummaryCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = summary.title,
+                    text = context.getString(summary.titleResId),
                     style = MaterialTheme.typography.titleLarge,
                     color = contentColor,
                 )
                 Text(
-                    text = summary.description,
+                    text = context.getString(summary.descriptionResId),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor.copy(alpha = 0.9f),
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = context.getString(R.string.home_summary_open_details),
+                    style = MaterialTheme.typography.labelMedium,
                     color = contentColor.copy(alpha = 0.9f),
                 )
                 if (summary.showRunCheckAction) {
@@ -636,6 +582,13 @@ private fun NetworkSummaryCard(
             }
         }
     }
+}
+
+private fun HomeSummaryTone.toEntryTone(): HomeEntryTone = when (this) {
+    HomeSummaryTone.Positive -> HomeEntryTone.Positive
+    HomeSummaryTone.Warning -> HomeEntryTone.Warning
+    HomeSummaryTone.Error -> HomeEntryTone.Error
+    HomeSummaryTone.Neutral -> HomeEntryTone.Neutral
 }
 
 @Composable
@@ -768,6 +721,7 @@ fun DiagnosticsHomeScreenPreview() {
             uiState = DiagnosticsUiState(),
             scrollState = rememberScrollState(),
             onRunHomeSummaryCheck = {},
+            onOpenSummaryDetails = {},
             onOpenOverview = {},
             onOpenDnsAnalysis = {},
             onOpenConnectivityTest = {},
