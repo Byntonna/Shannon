@@ -49,6 +49,7 @@ import com.example.shannon.domain.model.HomeDashboardStatusTone
 import com.example.shannon.domain.model.PortStatus
 import com.example.shannon.domain.model.SniAnalysisStatus
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
+import com.example.shannon.domain.model.WhitelistZoneVerdict
 import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
 import com.example.shannon.domain.model.toOutcome
 import com.example.shannon.presentation.model.DiagnosticsUiState
@@ -89,6 +90,7 @@ fun DiagnosticsHomeScreen(
     onOpenTracerouteDiagnostics: () -> Unit,
     onOpenReportExport: () -> Unit,
     onOpenWebsiteAccessibility: () -> Unit,
+    onOpenWhitelistZoneCheck: () -> Unit,
     onOpenAboutShannon: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -117,6 +119,14 @@ fun DiagnosticsHomeScreen(
             subtitle = context.getString(R.string.home_websites_subtitle),
             status = websiteStatus(uiState),
             onClick = onOpenWebsiteAccessibility,
+        ),
+        HomeMenuEntry(
+            icon = ImageVector.vectorResource(R.drawable.ic_whitelist),
+            iconBackground = IconPink,
+            title = context.getString(R.string.home_whitelist_title),
+            subtitle = context.getString(R.string.home_whitelist_subtitle),
+            status = whitelistZoneStatus(uiState),
+            onClick = onOpenWhitelistZoneCheck,
         ),
         HomeMenuEntry(
             icon = ImageVector.vectorResource(R.drawable.ic_dns),
@@ -201,11 +211,11 @@ fun DiagnosticsHomeScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
-                .padding(top = 8.dp, bottom = 16.dp),
+                .padding(top = 20.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 HomeSectionTitle(
                     title = context.getString(R.string.home_summary_section_title),
@@ -218,7 +228,7 @@ fun DiagnosticsHomeScreen(
                 )
             }
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 HomeSectionTitle(
                     title = context.getString(R.string.home_tools_section_title),
@@ -478,7 +488,7 @@ private fun HomeSectionTitle(
 ) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.bodyLarge,
     )
 }
 
@@ -566,21 +576,46 @@ private fun NetworkSummaryCard(
                 )
                 if (summary.showRunCheckAction) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(
+                    DiagnosticPrimaryButton(
+                        text = if (isRunning) {
+                            context.getString(R.string.home_summary_running_check)
+                        } else {
+                            context.getString(R.string.home_summary_run_check)
+                        },
                         onClick = onRunCheck,
                         enabled = !isRunning,
-                    ) {
-                        Text(
-                            text = if (isRunning) {
-                                context.getString(R.string.home_summary_running_check)
-                            } else {
-                                context.getString(R.string.home_summary_run_check)
-                            }
-                        )
-                    }
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun whitelistZoneStatus(uiState: DiagnosticsUiState): HomeEntryStatus {
+    val context = LocalContext.current
+    val result = uiState.whitelistZoneCheckResult
+    if (result == null) {
+        return persistedStatus(uiState, HomeDashboardStatusKey.WhitelistZoneCheck)
+            ?: HomeEntryStatus(context.getString(R.string.status_not_run), HomeEntryTone.Neutral)
+    }
+    return when (result.verdict) {
+        WhitelistZoneVerdict.InWhitelistZone -> HomeEntryStatus(
+            context.getString(R.string.whitelist_home_status_in_zone),
+            HomeEntryTone.Error,
+        )
+        WhitelistZoneVerdict.OutsideWhitelistZone -> HomeEntryStatus(
+            context.getString(R.string.whitelist_home_status_outside_zone),
+            HomeEntryTone.Positive,
+        )
+        WhitelistZoneVerdict.NoWhitelistDetectedButReferenceBlocked -> HomeEntryStatus(
+            context.getString(R.string.whitelist_home_status_reference_blocked),
+            HomeEntryTone.Warning,
+        )
+        WhitelistZoneVerdict.Inconclusive -> HomeEntryStatus(
+            context.getString(R.string.whitelist_home_status_inconclusive),
+            HomeEntryTone.Neutral,
+        )
     }
 }
 
@@ -733,6 +768,7 @@ fun DiagnosticsHomeScreenPreview() {
             onOpenTracerouteDiagnostics = {},
             onOpenReportExport = {},
             onOpenWebsiteAccessibility = {},
+            onOpenWhitelistZoneCheck = {},
             onOpenAboutShannon = {},
         )
     }

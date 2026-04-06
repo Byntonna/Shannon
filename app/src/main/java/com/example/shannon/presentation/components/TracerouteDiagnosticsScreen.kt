@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -48,9 +47,11 @@ fun TracerouteDiagnosticsScreen(
                 label = { Text(context.getString(R.string.traceroute_destination)) },
                 singleLine = true,
             )
-            Button(onClick = onRunTraceroute, enabled = !isRunning) {
-                Text(context.getString(if (isRunning) R.string.action_running else R.string.traceroute_run))
-            }
+            DiagnosticPrimaryButton(
+                text = context.getString(if (isRunning) R.string.action_running else R.string.traceroute_run),
+                onClick = onRunTraceroute,
+                enabled = !isRunning,
+            )
             if (isRunning && result == null) {
                 CircularProgressIndicator()
             }

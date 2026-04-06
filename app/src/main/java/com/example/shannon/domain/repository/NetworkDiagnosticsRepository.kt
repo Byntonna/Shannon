@@ -11,6 +11,7 @@ import com.example.shannon.domain.model.ReportFormat
 import com.example.shannon.domain.model.SniMitmAnalysisResult
 import com.example.shannon.domain.model.TlsAnalysisResult
 import com.example.shannon.domain.model.TracerouteResult
+import com.example.shannon.domain.model.WhitelistZoneCheckResult
 import com.example.shannon.domain.model.WebsiteAccessibilityTarget
 import com.example.shannon.domain.model.WebsiteAccessibilityResult
 
@@ -22,6 +23,8 @@ interface NetworkDiagnosticsRepository {
     suspend fun performWebsiteAccessibilityTest(
         targets: List<WebsiteAccessibilityTarget>,
     ): List<WebsiteAccessibilityResult>
+
+    suspend fun performWhitelistZoneCheck(): WhitelistZoneCheckResult
 
     suspend fun performDnsAnalysis(domain: String): DnsAnalysisResult
 

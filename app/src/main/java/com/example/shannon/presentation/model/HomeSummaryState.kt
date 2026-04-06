@@ -5,6 +5,7 @@ import com.example.shannon.R
 import com.example.shannon.domain.model.DnsAnalysisStatus
 import com.example.shannon.domain.model.SniAnalysisStatus
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
+import com.example.shannon.domain.model.WhitelistZoneVerdict
 import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
 import com.example.shannon.domain.model.toOutcome
 
@@ -36,6 +37,7 @@ fun DiagnosticsUiState.homeSummaryState(): HomeSummaryState {
     val hasLimitedWebsites = websiteAccessibilityResults.any {
         it.status.toOutcome() == WebsiteAccessibilityOutcome.Limited
     }
+    val whitelistVerdict = whitelistZoneCheckResult?.verdict
     val hasUnstableWebsites = websiteAccessibilityResults.any {
         it.status.toOutcome() == WebsiteAccessibilityOutcome.Unstable
     }
@@ -93,6 +95,8 @@ fun DiagnosticsUiState.homeSummaryState(): HomeSummaryState {
             tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.UnusualCertificateChain ||
             tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.TlsDowngradeSuspected ||
             dnsAnalysisResult?.status == DnsAnalysisStatus.Blocked ||
+            whitelistVerdict == WhitelistZoneVerdict.InWhitelistZone ||
+            whitelistVerdict == WhitelistZoneVerdict.NoWhitelistDetectedButReferenceBlocked ||
             hasLimitedWebsites ||
             hasConnectivityFailure -> {
             if (sniMitmAnalysisResult?.status == SniAnalysisStatus.SniFilteringSuspected) {
@@ -130,6 +134,20 @@ fun DiagnosticsUiState.homeSummaryState(): HomeSummaryState {
                     destination = DiagnosticsDestination.DnsAnalysis,
                 )
             }
+            if (whitelistVerdict == WhitelistZoneVerdict.InWhitelistZone) {
+                addReason(
+                    titleResId = R.string.home_summary_reason_whitelist_zone_title,
+                    descriptionResId = R.string.home_summary_reason_whitelist_zone_message,
+                    destination = DiagnosticsDestination.WhitelistZoneCheck,
+                )
+            }
+            if (whitelistVerdict == WhitelistZoneVerdict.NoWhitelistDetectedButReferenceBlocked) {
+                addReason(
+                    titleResId = R.string.home_summary_reason_whitelist_reference_blocked_title,
+                    descriptionResId = R.string.home_summary_reason_whitelist_reference_blocked_message,
+                    destination = DiagnosticsDestination.WhitelistZoneCheck,
+                )
+            }
             if (hasLimitedWebsites) {
                 addReason(
                     titleResId = R.string.home_summary_reason_websites_limited_title,
@@ -156,6 +174,7 @@ fun DiagnosticsUiState.homeSummaryState(): HomeSummaryState {
         !hasKeyResults ||
             tlsAnalysisResult?.status == TlsAnalysisHeuristicStatus.Inconclusive ||
             sniMitmAnalysisResult?.status == SniAnalysisStatus.Inconclusive ||
+            whitelistVerdict == WhitelistZoneVerdict.Inconclusive ||
             hasUnstableWebsites -> {
             if (!hasKeyResults) {
                 addReason(
@@ -182,6 +201,13 @@ fun DiagnosticsUiState.homeSummaryState(): HomeSummaryState {
                     titleResId = R.string.home_summary_reason_websites_unstable_title,
                     descriptionResId = R.string.home_summary_reason_websites_unstable_message,
                     destination = DiagnosticsDestination.WebsiteAccessibility,
+                )
+            }
+            if (whitelistVerdict == WhitelistZoneVerdict.Inconclusive) {
+                addReason(
+                    titleResId = R.string.home_summary_reason_whitelist_inconclusive_title,
+                    descriptionResId = R.string.home_summary_reason_whitelist_inconclusive_message,
+                    destination = DiagnosticsDestination.WhitelistZoneCheck,
                 )
             }
 
@@ -214,14 +240,17 @@ fun DiagnosticsUiState.homeSummaryState(): HomeSummaryState {
             DiagnosticsDestination.SniMitmAnalysis,
             DiagnosticsDestination.TlsAnalysis,
             DiagnosticsDestination.WebsiteAccessibility,
+            DiagnosticsDestination.WhitelistZoneCheck,
         )
         HomeSummaryTone.Warning -> listOf(
+            DiagnosticsDestination.WhitelistZoneCheck,
             DiagnosticsDestination.WebsiteAccessibility,
             DiagnosticsDestination.DnsAnalysis,
             DiagnosticsDestination.ConnectivityTest,
             DiagnosticsDestination.TlsAnalysis,
         )
         HomeSummaryTone.Neutral -> listOf(
+            DiagnosticsDestination.WhitelistZoneCheck,
             DiagnosticsDestination.ConnectivityTest,
             DiagnosticsDestination.WebsiteAccessibility,
             DiagnosticsDestination.DnsAnalysis,

@@ -13,6 +13,7 @@
     <string name="destination_traceroute_diagnostics">Traceroute diagnostics</string>
     <string name="destination_report_export">Report export</string>
     <string name="destination_website_accessibility">Website accessibility</string>
+    <string name="destination_whitelist_zone_check">Whitelist zone check</string>
     <string name="destination_about">About Shannon</string>
     <string name="destination_network_status">Network status</string>
     <string name="screen_network_overview">@string/destination_overview</string>
@@ -27,6 +28,7 @@
     <string name="screen_traceroute_diagnostics">@string/destination_traceroute_diagnostics</string>
     <string name="screen_report_export">@string/destination_report_export</string>
     <string name="screen_website_accessibility">@string/destination_website_accessibility</string>
+    <string name="screen_whitelist_zone_check">@string/destination_whitelist_zone_check</string>
     <string name="screen_about_shannon">@string/destination_about</string>
 
     <string name="connectivity_preset_standard_title">Standard</string>
@@ -132,6 +134,7 @@
     <string name="report_format_json">JSON</string>
     <string name="report_format_markdown">Markdown</string>
     <string name="report_format_text">Text</string>
+    <string name="report_section_whitelist">Whitelist zone</string>
 
     <string name="endpoint_cloudflare_trace">Cloudflare Trace</string>
     <string name="endpoint_google_connectivity_check">Google Connectivity Check</string>
@@ -295,6 +298,7 @@
     <string name="connectivity_tcp_failed">TCP connection failed</string>
     <string name="connectivity_tls_success">%1$s handshake succeeded in %2$d ms</string>
     <string name="connectivity_tls_failed">TLS handshake failed</string>
+    <string name="connectivity_tls_not_applicable">Not attempted for a plain HTTP target</string>
     <string name="connectivity_http_success">HTTP %1$d in %2$d ms</string>
     <string name="connectivity_http_failed">HTTP request failed</string>
 
@@ -570,6 +574,8 @@
     <string name="home_websites_subtitle">Compare local control, foreign control, and restricted websites</string>
     <string name="home_websites_status_limited">%1$d limited</string>
     <string name="home_websites_status_unstable">%1$d unstable</string>
+    <string name="home_whitelist_title">@string/destination_whitelist_zone_check</string>
+    <string name="home_whitelist_subtitle">Detect whether the network behaves like a whitelist-only environment</string>
     <string name="home_dns_title">@string/destination_dns_analysis</string>
     <string name="home_dns_subtitle">Compare system and public DNS resolvers</string>
     <string name="home_protocol_title">@string/destination_protocol_analysis</string>
@@ -612,6 +618,12 @@
     <string name="home_summary_reason_not_enough_data_message">Shannon needs results from connectivity, website, DNS, TLS, or SNI checks before it can explain the network state.</string>
     <string name="home_summary_reason_connectivity_failed_title">The basic connection check failed</string>
     <string name="home_summary_reason_connectivity_failed_message">At least one of the DNS, TCP, TLS, or HTTP stages failed on the test endpoint.</string>
+    <string name="home_summary_reason_whitelist_zone_title">The network matches a whitelist-only pattern</string>
+    <string name="home_summary_reason_whitelist_zone_message">Local controls worked, while several external or blocked references did not, which matches a whitelist-style environment.</string>
+    <string name="home_summary_reason_whitelist_reference_blocked_title">Whitelist pattern not detected, but filtered references are blocked</string>
+    <string name="home_summary_reason_whitelist_reference_blocked_message">External checks stayed reachable, but at least one reference target usually blocked by policy was unavailable, which looks more like ordinary provider or network filtering than a whitelist-only zone.</string>
+    <string name="home_summary_reason_whitelist_inconclusive_title">The whitelist-zone check stayed inconclusive</string>
+    <string name="home_summary_reason_whitelist_inconclusive_message">The whitelist-zone targets showed a mixed pattern that is not strong enough for a confident conclusion.</string>
     <string name="home_summary_reason_websites_limited_title">Some sites were unavailable</string>
     <string name="home_summary_reason_websites_limited_message">One or more tested sites failed before loading normally, which can point to blocking or a broader network issue.</string>
     <string name="home_summary_reason_websites_unstable_title">Some sites behaved unusually</string>
@@ -642,4 +654,37 @@
     <string name="home_tls_status_chain">@string/status_chain</string>
     <string name="home_tls_status_downgrade">@string/status_downgrade</string>
     <string name="home_tls_status_interception">@string/status_interception</string>
+    <string name="whitelist_group_local_control_title">Local control</string>
+    <string name="whitelist_group_local_control_subtitle">Services expected to work inside the local network environment</string>
+    <string name="whitelist_group_foreign_control_title">Foreign control</string>
+    <string name="whitelist_group_foreign_control_subtitle">External connectivity checks that usually stay reachable on an open network</string>
+    <string name="whitelist_group_blocked_reference_title">Blocked reference</string>
+    <string name="whitelist_group_blocked_reference_subtitle">Targets often filtered or limited in whitelist-style environments</string>
+    <string name="whitelist_description">Compare local controls, external controls, and blocked references to estimate whether the network behaves like a whitelist-only zone.</string>
+    <string name="whitelist_run_check">Run check</string>
+    <string name="whitelist_summary_title">Latest verdict</string>
+    <string name="whitelist_placeholder">Run the check to see whether this network looks like a whitelist-only environment.</string>
+    <string name="whitelist_results_title">Targets</string>
+    <string name="whitelist_results_subtitle">Grouped by local controls, external controls, and reference targets to make the verdict easier to interpret.</string>
+    <string name="whitelist_verdict_in_zone">In whitelist zone</string>
+    <string name="whitelist_verdict_outside_zone">Outside whitelist zone</string>
+    <string name="whitelist_verdict_no_whitelist_but_reference_blocked">Whitelist not detected, reference blocking observed</string>
+    <string name="whitelist_verdict_inconclusive">Inconclusive</string>
+    <string name="whitelist_verdict_in_zone_summary">All local controls worked, while multiple external checks failed and at least one blocked reference was unavailable.</string>
+    <string name="whitelist_verdict_outside_zone_summary">Local controls and external checks worked, and the blocked references were also reachable.</string>
+    <string name="whitelist_verdict_no_whitelist_but_reference_blocked_summary">Whitelist zone was not detected, but the reference blocked targets were unavailable. This more likely indicates ordinary provider, DNS, DPI, or other network-policy filtering.</string>
+    <string name="whitelist_verdict_inconclusive_summary">The current pattern does not clearly separate a whitelist-style network from a normal open connection.</string>
+    <string name="whitelist_reason_local_ok">Local controls reachable</string>
+    <string name="whitelist_reason_local_failed">Some local controls failed</string>
+    <string name="whitelist_reason_foreign_blocked">Multiple external controls failed</string>
+    <string name="whitelist_reason_foreign_reachable">External controls mostly reachable</string>
+    <string name="whitelist_reason_blocked_refs_unavailable">Blocked references unavailable</string>
+    <string name="whitelist_reason_blocked_refs_reachable">Reference targets reachable</string>
+    <string name="whitelist_target_accessible">Accessible</string>
+    <string name="whitelist_target_unavailable">Unavailable</string>
+    <string name="whitelist_diagnostics_details">Diagnostics details</string>
+    <string name="whitelist_home_status_in_zone">In whitelist zone</string>
+    <string name="whitelist_home_status_outside_zone">Not detected</string>
+    <string name="whitelist_home_status_reference_blocked">Filtering likely</string>
+    <string name="whitelist_home_status_inconclusive">Status unclear</string>
 </resources>

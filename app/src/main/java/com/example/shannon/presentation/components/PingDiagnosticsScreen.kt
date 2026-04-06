@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -85,9 +84,11 @@ fun PingDiagnosticsScreen(
                 singleLine = true,
                 enabled = !isRunning,
             )
-            Button(onClick = onRunPing, enabled = !isRunning) {
-                Text(context.getString(if (isRunning) R.string.action_running else R.string.ping_run))
-            }
+            DiagnosticPrimaryButton(
+                text = context.getString(if (isRunning) R.string.action_running else R.string.ping_run),
+                onClick = onRunPing,
+                enabled = !isRunning,
+            )
             if (isRunning) {
                 CircularProgressIndicator()
             }

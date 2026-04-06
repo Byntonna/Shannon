@@ -30,6 +30,8 @@ import com.example.shannon.domain.model.SniMitmAnalysisResult
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
 import com.example.shannon.domain.model.TlsAnalysisResult
 import com.example.shannon.domain.model.TracerouteResult
+import com.example.shannon.domain.model.WhitelistZoneCheckResult
+import com.example.shannon.domain.model.WhitelistZoneVerdict
 import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
 import com.example.shannon.domain.model.WebsiteAccessibilityPreset
 import com.example.shannon.domain.model.WebsiteAccessibilityResult
@@ -44,6 +46,7 @@ import com.example.shannon.domain.usecase.RunProtocolAnalysisUseCase
 import com.example.shannon.domain.usecase.RunSniMitmAnalysisUseCase
 import com.example.shannon.domain.usecase.RunTlsAnalysisUseCase
 import com.example.shannon.domain.usecase.RunTracerouteUseCase
+import com.example.shannon.domain.usecase.RunWhitelistZoneCheckUseCase
 import com.example.shannon.domain.usecase.RunWebsiteAccessibilityTestUseCase
 import com.example.shannon.domain.usecase.ScanPortUseCase
 import com.example.shannon.presentation.model.DiagnosticsDestination
@@ -66,6 +69,7 @@ class NetworkDiagnosticsViewModel(
     private val readNetworkOverview: ReadNetworkOverviewUseCase,
     private val runConnectivityTest: RunConnectivityTestUseCase,
     private val runWebsiteAccessibilityTest: RunWebsiteAccessibilityTestUseCase,
+    private val runWhitelistZoneCheck: RunWhitelistZoneCheckUseCase,
     private val runDnsAnalysis: RunDnsAnalysisUseCase,
     private val runProtocolAnalysis: RunProtocolAnalysisUseCase,
     private val runTlsAnalysis: RunTlsAnalysisUseCase,
@@ -130,6 +134,13 @@ class NetworkDiagnosticsViewModel(
             DiagnosticsDestination.TracerouteDiagnostics -> Unit
             DiagnosticsDestination.ReportExport -> Unit
             DiagnosticsDestination.About -> Unit
+            DiagnosticsDestination.WhitelistZoneCheck -> {
+                if (_uiState.value.whitelistZoneCheckResult == null &&
+                    !_uiState.value.isRunningWhitelistZoneCheck
+                ) {
+                    launchWhitelistZoneCheck()
+                }
+            }
             DiagnosticsDestination.WebsiteAccessibility -> {
                 if (_uiState.value.websiteAccessibilityResults.isEmpty() &&
                     !_uiState.value.isRunningWebsiteAccessibility
@@ -163,6 +174,7 @@ class NetworkDiagnosticsViewModel(
                     isRunningHomeSummaryCheck = true,
                     isRunning = true,
                     isRunningWebsiteAccessibility = true,
+                    isRunningWhitelistZoneCheck = true,
                     isRunningDnsAnalysis = true,
                     isRunningTlsAnalysis = true,
                     isRunningSniMitmAnalysis = true,
@@ -179,6 +191,7 @@ class NetworkDiagnosticsViewModel(
             val websiteDeferred = async {
                 runCatching { runWebsiteAccessibilityTest(websiteTargets) }
             }
+            val whitelistDeferred = async { runCatching { runWhitelistZoneCheck() } }
             val dnsDeferred = async {
                 runCatching { runDnsAnalysis(initialState.dnsAnalysisDomain) }
             }
@@ -188,6 +201,7 @@ class NetworkDiagnosticsViewModel(
             val overviewResult = overviewDeferred.await()
             val connectivityResult = connectivityDeferred.await()
             val websiteResult = websiteDeferred.await()
+            val whitelistResult = whitelistDeferred.await()
             val dnsResult = dnsDeferred.await()
             val tlsResult = tlsDeferred.await()
             val sniResult = sniDeferred.await()
@@ -199,6 +213,8 @@ class NetworkDiagnosticsViewModel(
                     isRunning = false,
                     websiteAccessibilityResults = websiteResult.getOrNull() ?: state.websiteAccessibilityResults,
                     isRunningWebsiteAccessibility = false,
+                    whitelistZoneCheckResult = whitelistResult.getOrNull() ?: state.whitelistZoneCheckResult,
+                    isRunningWhitelistZoneCheck = false,
                     dnsAnalysisResult = dnsResult.getOrNull() ?: state.dnsAnalysisResult,
                     isRunningDnsAnalysis = false,
                     tlsAnalysisResult = tlsResult.getOrNull() ?: state.tlsAnalysisResult,
@@ -210,6 +226,7 @@ class NetworkDiagnosticsViewModel(
             }
 
             connectivityResult.getOrNull()?.let { persistHomeStatus(connectivityDashboardStatus(it)) }
+            whitelistResult.getOrNull()?.let { persistHomeStatus(whitelistDashboardStatus(it)) }
             dnsResult.getOrNull()?.let { persistHomeStatus(dnsDashboardStatus(it)) }
             tlsResult.getOrNull()?.let { persistHomeStatus(tlsDashboardStatus(it)) }
             sniResult.getOrNull()?.let { persistHomeStatus(sniDashboardStatus(it)) }
@@ -706,6 +723,21 @@ class NetworkDiagnosticsViewModel(
         }
     }
 
+    fun launchWhitelistZoneCheck() {
+        if (_uiState.value.isRunningWhitelistZoneCheck) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRunningWhitelistZoneCheck = true) }
+            val result = runWhitelistZoneCheck()
+            _uiState.update {
+                it.copy(
+                    whitelistZoneCheckResult = result,
+                    isRunningWhitelistZoneCheck = false,
+                )
+            }
+            persistHomeStatus(whitelistDashboardStatus(result))
+        }
+    }
+
     fun selectWebsitePreset(preset: WebsiteAccessibilityPreset) {
         _uiState.update {
             if (it.selectedWebsitePreset == preset) {
@@ -787,6 +819,7 @@ class NetworkDiagnosticsViewModel(
             tlsAnalysis = state.tlsAnalysisResult,
             sniMitmAnalysis = state.sniMitmAnalysisResult,
             websiteAccessibilityResults = state.websiteAccessibilityResults,
+            whitelistZoneCheck = state.whitelistZoneCheckResult,
             pingResult = state.pingResult,
             tracerouteResult = state.tracerouteResult,
             timestamp = System.currentTimeMillis(),
@@ -837,6 +870,28 @@ class NetworkDiagnosticsViewModel(
         }
         return HomeDashboardStatus(
             key = HomeDashboardStatusKey.WebsiteAccessibility,
+            text = text,
+            tone = tone,
+        )
+    }
+
+    private fun whitelistDashboardStatus(result: WhitelistZoneCheckResult): HomeDashboardStatus {
+        val (text, tone) = when (result.verdict) {
+            WhitelistZoneVerdict.InWhitelistZone -> {
+                appContext.getString(R.string.whitelist_home_status_in_zone) to HomeDashboardStatusTone.Error
+            }
+            WhitelistZoneVerdict.OutsideWhitelistZone -> {
+                appContext.getString(R.string.whitelist_home_status_outside_zone) to HomeDashboardStatusTone.Positive
+            }
+            WhitelistZoneVerdict.NoWhitelistDetectedButReferenceBlocked -> {
+                appContext.getString(R.string.whitelist_home_status_reference_blocked) to HomeDashboardStatusTone.Warning
+            }
+            WhitelistZoneVerdict.Inconclusive -> {
+                appContext.getString(R.string.whitelist_home_status_inconclusive) to HomeDashboardStatusTone.Neutral
+            }
+        }
+        return HomeDashboardStatus(
+            key = HomeDashboardStatusKey.WhitelistZoneCheck,
             text = text,
             tone = tone,
         )
@@ -963,6 +1018,7 @@ class NetworkDiagnosticsViewModel(
                 readNetworkOverview = appContainer.readNetworkOverview,
                 runConnectivityTest = appContainer.runConnectivityTest,
                 runWebsiteAccessibilityTest = appContainer.runWebsiteAccessibilityTest,
+                runWhitelistZoneCheck = appContainer.runWhitelistZoneCheck,
                 runDnsAnalysis = appContainer.runDnsAnalysis,
                 runProtocolAnalysis = appContainer.runProtocolAnalysis,
                 runTlsAnalysis = appContainer.runTlsAnalysis,

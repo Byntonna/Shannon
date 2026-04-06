@@ -18,6 +18,8 @@ import com.example.shannon.domain.model.SniProbeErrorCategory
 import com.example.shannon.domain.model.SniVariantType
 import com.example.shannon.domain.model.TlsAnalysisHeuristicStatus
 import com.example.shannon.domain.model.TlsEndpointStatus
+import com.example.shannon.domain.model.WhitelistZoneTargetGroup
+import com.example.shannon.domain.model.WhitelistZoneVerdict
 import com.example.shannon.domain.model.WebsiteAccessibilityCategory
 import com.example.shannon.domain.model.WebsiteAccessibilityOutcome
 import com.example.shannon.domain.model.WebsiteAccessibilityPreset
@@ -40,6 +42,7 @@ fun DiagnosticsDestination.titleResId(): Int = when (this) {
     DiagnosticsDestination.TracerouteDiagnostics -> R.string.screen_traceroute_diagnostics
     DiagnosticsDestination.ReportExport -> R.string.screen_report_export
     DiagnosticsDestination.WebsiteAccessibility -> R.string.screen_website_accessibility
+    DiagnosticsDestination.WhitelistZoneCheck -> R.string.screen_whitelist_zone_check
     DiagnosticsDestination.About -> R.string.screen_about_shannon
 }
 
@@ -94,6 +97,30 @@ fun WebsiteAccessibilityOutcome.titleResId(): Int = when (this) {
     WebsiteAccessibilityOutcome.Available -> R.string.website_result_available
     WebsiteAccessibilityOutcome.Unstable -> R.string.website_result_unstable
     WebsiteAccessibilityOutcome.Limited -> R.string.website_result_limited
+}
+
+@StringRes
+fun WhitelistZoneTargetGroup.titleResId(): Int = when (this) {
+    WhitelistZoneTargetGroup.LocalControl -> R.string.whitelist_group_local_control_title
+    WhitelistZoneTargetGroup.ForeignControl -> R.string.whitelist_group_foreign_control_title
+    WhitelistZoneTargetGroup.BlockedReference -> R.string.whitelist_group_blocked_reference_title
+}
+
+@StringRes
+fun WhitelistZoneTargetGroup.subtitleResId(): Int = when (this) {
+    WhitelistZoneTargetGroup.LocalControl -> R.string.whitelist_group_local_control_subtitle
+    WhitelistZoneTargetGroup.ForeignControl -> R.string.whitelist_group_foreign_control_subtitle
+    WhitelistZoneTargetGroup.BlockedReference -> R.string.whitelist_group_blocked_reference_subtitle
+}
+
+@StringRes
+fun WhitelistZoneVerdict.titleResId(): Int = when (this) {
+    WhitelistZoneVerdict.InWhitelistZone -> R.string.whitelist_verdict_in_zone
+    WhitelistZoneVerdict.OutsideWhitelistZone -> R.string.whitelist_verdict_outside_zone
+    WhitelistZoneVerdict.NoWhitelistDetectedButReferenceBlocked -> {
+        R.string.whitelist_verdict_no_whitelist_but_reference_blocked
+    }
+    WhitelistZoneVerdict.Inconclusive -> R.string.whitelist_verdict_inconclusive
 }
 
 @StringRes
@@ -240,6 +267,7 @@ fun sectionTitleResId(section: String): Int? = when (section) {
     "Ping" -> R.string.report_section_ping
     "Traceroute" -> R.string.report_section_traceroute
     "Websites" -> R.string.report_section_websites
+    "Whitelist zone" -> R.string.report_section_whitelist
     else -> null
 }
 

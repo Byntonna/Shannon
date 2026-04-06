@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -103,12 +102,16 @@ fun PortScanScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onRunSingleScan, enabled = !isRunning) {
-                    Text(context.getString(if (isRunning) R.string.action_running else R.string.port_scan_run_single))
-                }
-                Button(onClick = onRunQuickScan, enabled = !isRunning) {
-                    Text(context.getString(R.string.port_scan_run_quick))
-                }
+                DiagnosticPrimaryButton(
+                    text = context.getString(if (isRunning) R.string.action_running else R.string.port_scan_run_single),
+                    onClick = onRunSingleScan,
+                    enabled = !isRunning,
+                )
+                DiagnosticSecondaryButton(
+                    text = context.getString(R.string.port_scan_run_quick),
+                    onClick = onRunQuickScan,
+                    enabled = !isRunning,
+                )
             }
             if (isRunning && results.isEmpty()) {
                 CircularProgressIndicator()

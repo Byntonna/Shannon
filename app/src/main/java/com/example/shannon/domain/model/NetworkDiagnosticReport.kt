@@ -14,6 +14,7 @@ data class NetworkDiagnosticReport(
     val tlsAnalysis: TlsAnalysisResult?,
     val sniMitmAnalysis: SniMitmAnalysisResult?,
     val websiteAccessibilityResults: List<WebsiteAccessibilityResult>,
+    val whitelistZoneCheck: WhitelistZoneCheckResult?,
     val pingResult: PingResult?,
     val tracerouteResult: TracerouteResult?,
     val timestamp: Long,

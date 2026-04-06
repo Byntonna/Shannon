@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -64,18 +63,16 @@ fun ConnectivityTestScreen(
                 onSelectTargetPreset = onSelectTargetPreset,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
+                DiagnosticPrimaryButton(
+                    text = context.getString(if (isRunning) R.string.action_running else R.string.connectivity_run_test),
                     onClick = onRunTest,
                     enabled = !isRunning,
-                ) {
-                    Text(context.getString(if (isRunning) R.string.action_running else R.string.connectivity_run_test))
-                }
-                Button(
+                )
+                DiagnosticSecondaryButton(
+                    text = context.getString(R.string.action_refresh_network),
                     onClick = onRefreshNetwork,
                     enabled = !isRunning,
-                ) {
-                    Text(context.getString(R.string.action_refresh_network))
-                }
+                )
             }
             when {
                 isRunning && testResult == null -> CircularProgressIndicator()

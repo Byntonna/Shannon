@@ -16,6 +16,7 @@ import com.example.shannon.domain.model.ReportFormat
 import com.example.shannon.domain.model.SniMitmAnalysisResult
 import com.example.shannon.domain.model.TlsAnalysisResult
 import com.example.shannon.domain.model.TracerouteResult
+import com.example.shannon.domain.model.WhitelistZoneCheckResult
 import com.example.shannon.domain.model.WebsiteAccessibilityPreset
 import com.example.shannon.domain.model.WebsiteAccessibilityResult
 import com.example.shannon.domain.model.WebsiteAccessibilityTarget
@@ -30,6 +31,8 @@ data class DiagnosticsUiState(
     val selectedTargetPreset: ConnectivityTargetPreset = ConnectivityTargetPreset.Standard,
     val websiteAccessibilityResults: List<WebsiteAccessibilityResult> = emptyList(),
     val isRunningWebsiteAccessibility: Boolean = false,
+    val whitelistZoneCheckResult: WhitelistZoneCheckResult? = null,
+    val isRunningWhitelistZoneCheck: Boolean = false,
     val selectedWebsitePreset: WebsiteAccessibilityPreset = WebsiteAccessibilityPreset.Baseline,
     val customWebsiteInput: String = "",
     val customWebsiteTargets: List<WebsiteAccessibilityTarget> = emptyList(),

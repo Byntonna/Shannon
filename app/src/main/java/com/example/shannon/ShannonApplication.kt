@@ -14,6 +14,7 @@ import com.example.shannon.domain.usecase.RunProtocolAnalysisUseCase
 import com.example.shannon.domain.usecase.RunSniMitmAnalysisUseCase
 import com.example.shannon.domain.usecase.RunTlsAnalysisUseCase
 import com.example.shannon.domain.usecase.RunTracerouteUseCase
+import com.example.shannon.domain.usecase.RunWhitelistZoneCheckUseCase
 import com.example.shannon.domain.usecase.RunWebsiteAccessibilityTestUseCase
 import com.example.shannon.domain.usecase.ScanPortUseCase
 
@@ -42,6 +43,7 @@ class ShannonAppContainer(
     val readNetworkOverview = ReadNetworkOverviewUseCase(networkRepository)
     val runConnectivityTest = RunConnectivityTestUseCase(networkRepository)
     val runWebsiteAccessibilityTest = RunWebsiteAccessibilityTestUseCase(networkRepository)
+    val runWhitelistZoneCheck = RunWhitelistZoneCheckUseCase(networkRepository)
     val runDnsAnalysis = RunDnsAnalysisUseCase(networkRepository)
     val runProtocolAnalysis = RunProtocolAnalysisUseCase(networkRepository)
     val runTlsAnalysis = RunTlsAnalysisUseCase(networkRepository)

@@ -14,5 +14,6 @@ enum class DiagnosticsDestination {
     TracerouteDiagnostics,
     ReportExport,
     WebsiteAccessibility,
+    WhitelistZoneCheck,
     About,
 }

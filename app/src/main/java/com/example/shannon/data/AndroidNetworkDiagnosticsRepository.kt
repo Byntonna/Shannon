@@ -49,6 +49,10 @@ import com.example.shannon.domain.model.TlsObservation
 import com.example.shannon.domain.model.TlsVersionSupport
 import com.example.shannon.domain.model.TracerouteHop
 import com.example.shannon.domain.model.TracerouteResult
+import com.example.shannon.domain.model.WhitelistZoneCheckResult
+import com.example.shannon.domain.model.WhitelistZoneTargetResult
+import com.example.shannon.domain.model.defaultWhitelistZoneTargets
+import com.example.shannon.domain.model.evaluateWhitelistZoneVerdict
 import com.example.shannon.domain.model.WebsiteAccessibilityResult
 import com.example.shannon.domain.model.WebsiteAccessibilityStatus
 import com.example.shannon.domain.model.WebsiteAccessibilityTarget
@@ -421,6 +425,34 @@ class AndroidNetworkDiagnosticsRepository(
             }
         }
 
+    override suspend fun performWhitelistZoneCheck(): WhitelistZoneCheckResult =
+        withContext(Dispatchers.IO) {
+            val results = coroutineScope {
+                defaultWhitelistZoneTargets.map { target ->
+                    async {
+                        val diagnostics = runSingleEndpointTest(
+                            target = ConnectivityTarget(
+                                label = target.name,
+                                url = target.url,
+                            ),
+                            fallbackUsed = false,
+                            fallbackReason = null,
+                        )
+                        WhitelistZoneTargetResult(
+                            target = target,
+                            diagnostics = diagnostics,
+                            accessible = diagnostics.isHttpAccessible(),
+                        )
+                    }
+                }.awaitAll()
+            }
+            WhitelistZoneCheckResult(
+                verdict = evaluateWhitelistZoneVerdict(results),
+                results = results,
+                checkedAt = results.firstOrNull()?.diagnostics?.checkedAt ?: nowTimestamp(),
+            )
+        }
+
     override suspend fun performDnsAnalysis(domain: String): DnsAnalysisResult = withContext(Dispatchers.IO) {
         val normalizedDomain = domain.trim().ifBlank { "example.com" }
         val results = coroutineScope {
@@ -606,6 +638,7 @@ class AndroidNetworkDiagnosticsRepository(
         fallbackUsed: Boolean,
         fallbackReason: String?,
     ): ConnectivityTestResult {
+        val parsedUrl = URL(target.url)
         val metrics = OkHttpProbeMetrics()
         val steps = mutableListOf<ConnectivityStepResult>()
         runCatching {
@@ -638,7 +671,7 @@ class AndroidNetworkDiagnosticsRepository(
             )
         }
 
-        val tlsStep = buildTlsConnectivityStep(metrics)
+        val tlsStep = buildTlsConnectivityStep(metrics, isHttps = parsedUrl.protocol.equals("https", ignoreCase = true))
         steps += tlsStep
         if (!tlsStep.success) {
             return connectivityResult(
@@ -717,7 +750,17 @@ class AndroidNetworkDiagnosticsRepository(
         }
     }
 
-    private fun buildTlsConnectivityStep(metrics: OkHttpProbeMetrics): ConnectivityStepResult {
+    private fun buildTlsConnectivityStep(
+        metrics: OkHttpProbeMetrics,
+        isHttps: Boolean,
+    ): ConnectivityStepResult {
+        if (!isHttps) {
+            return ConnectivityStepResult(
+                stage = context.getString(R.string.stage_tls),
+                success = true,
+                summary = context.getString(R.string.connectivity_tls_not_applicable),
+            )
+        }
         val message = metrics.failure?.message ?: context.getString(R.string.connectivity_tls_failed)
         return if (metrics.secureConnectFinished) {
             ConnectivityStepResult(
@@ -1006,6 +1049,30 @@ class AndroidNetworkDiagnosticsRepository(
                     }
                 )
             }
+            report.whitelistZoneCheck?.let { whitelist ->
+                put(
+                    "whitelistZoneCheck",
+                    JSONObject().apply {
+                        put("verdict", context.getString(whitelist.verdict.titleResId()))
+                        put("checkedAt", whitelist.checkedAt)
+                        put(
+                            "targets",
+                            JSONArray().apply {
+                                whitelist.results.forEach { result ->
+                                    put(
+                                        JSONObject().apply {
+                                            put("service", result.target.name)
+                                            put("url", result.target.url)
+                                            put("group", context.getString(result.target.group.titleResId()))
+                                            put("accessible", result.accessible)
+                                        }
+                                    )
+                                }
+                            }
+                        )
+                    }
+                )
+            }
             report.pingResult?.let { ping ->
                 put(
                     "ping",
@@ -1128,6 +1195,16 @@ class AndroidNetworkDiagnosticsRepository(
             appendLine("- ${result.serviceName}: ${context.getString(result.status.titleResId())}")
                 }
             }
+            report.whitelistZoneCheck?.let {
+                appendLine()
+                appendLine("## Whitelist zone check")
+                appendLine("- Verdict: ${context.getString(it.verdict.titleResId())}")
+                it.results.forEach { result ->
+                    appendLine(
+                        "- ${result.target.name}: ${if (result.accessible) "accessible" else "unavailable"}"
+                    )
+                }
+            }
         }
     }
 
@@ -1176,6 +1253,10 @@ class AndroidNetworkDiagnosticsRepository(
             report.sniMitmAnalysis?.let {
                 appendLine()
             appendLine("SNI status: ${context.getString(it.status.titleResId())}")
+            }
+            report.whitelistZoneCheck?.let {
+                appendLine()
+                appendLine("Whitelist zone verdict: ${context.getString(it.verdict.titleResId())}")
             }
         }
     }
@@ -2456,6 +2537,10 @@ private fun ConnectivityTestResult.toWebsiteAccessibilityStatus(): WebsiteAccess
     } else {
         WebsiteAccessibilityStatus.HttpError
     }
+}
+
+private fun ConnectivityTestResult.isHttpAccessible(): Boolean {
+    return steps.firstOrNull { it.stage == "HTTP" }?.success == true
 }
 
 private fun NetworkCapabilities?.toNetworkType(): String {

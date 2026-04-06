@@ -18,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -111,18 +110,15 @@ fun HomeSummaryDetailsScreen(
                     )
                     if (summary.showRunCheckAction) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(
+                        DiagnosticPrimaryButton(
+                            text = if (uiState.isRunningHomeSummaryCheck) {
+                                stringResource(R.string.home_summary_running_check)
+                            } else {
+                                stringResource(R.string.home_summary_run_check)
+                            },
                             onClick = onRunHomeSummaryCheck,
                             enabled = !uiState.isRunningHomeSummaryCheck,
-                        ) {
-                            Text(
-                                text = if (uiState.isRunningHomeSummaryCheck) {
-                                    stringResource(R.string.home_summary_running_check)
-                                } else {
-                                    stringResource(R.string.home_summary_run_check)
-                                }
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -156,12 +152,12 @@ fun HomeSummaryDetailsScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
             summary.nextSteps.forEach { destination ->
-                Button(
+                DiagnosticPrimaryButton(
+                    text = stringResource(destination.titleResId()),
                     onClick = { onOpenScreen(destination) },
+                    enabled = true,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(text = stringResource(destination.titleResId()))
-                }
+                )
             }
         }
     }

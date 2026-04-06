@@ -12,6 +12,7 @@
     <string name="destination_traceroute_diagnostics">Диагностика трассировки</string>
     <string name="destination_report_export">Экспорт отчёта</string>
     <string name="destination_website_accessibility">Доступность сайтов</string>
+    <string name="destination_whitelist_zone_check">Зона белых списков</string>
     <string name="destination_about">О Shannon</string>
     <string name="destination_network_status">Состояние сети</string>
     <string name="screen_network_overview">@string/destination_overview</string>
@@ -26,6 +27,7 @@
     <string name="screen_traceroute_diagnostics">@string/destination_traceroute_diagnostics</string>
     <string name="screen_report_export">@string/destination_report_export</string>
     <string name="screen_website_accessibility">@string/destination_website_accessibility</string>
+    <string name="screen_whitelist_zone_check">@string/destination_whitelist_zone_check</string>
     <string name="screen_about_shannon">@string/destination_about</string>
 
     <string name="connectivity_preset_standard_title">Стандартный</string>
@@ -125,6 +127,7 @@
     <string name="report_format_json">JSON</string>
     <string name="report_format_markdown">Markdown</string>
     <string name="report_format_text">Текст</string>
+    <string name="report_section_whitelist">Зона белых списков</string>
     <string name="endpoint_cloudflare_trace">Cloudflare Trace</string>
     <string name="endpoint_google_connectivity_check">Google Connectivity Check</string>
     <string name="endpoint_firefox_detect_portal">Firefox Detect Portal</string>
@@ -244,6 +247,7 @@
     <string name="connectivity_tcp_failed">TCP-подключение не удалось</string>
     <string name="connectivity_tls_success">Рукопожатие %1$s выполнено за %2$d мс</string>
     <string name="connectivity_tls_failed">TLS-рукопожатие не удалось</string>
+    <string name="connectivity_tls_not_applicable">Не выполнялось для обычной HTTP-цели</string>
     <string name="connectivity_http_success">HTTP %1$d за %2$d мс</string>
     <string name="connectivity_http_failed">HTTP-запрос не удался</string>
 
@@ -420,6 +424,12 @@
     <string name="home_summary_reason_not_enough_data_message">Чтобы объяснить состояние сети, Shannon нужны результаты проверок подключения, сайтов, DNS, TLS или SNI.</string>
     <string name="home_summary_reason_connectivity_failed_title">Базовая проверка соединения завершилась ошибкой</string>
     <string name="home_summary_reason_connectivity_failed_message">На тестовой конечной точке завершился ошибкой как минимум один из этапов DNS, TCP, TLS или HTTP.</string>
+    <string name="home_summary_reason_whitelist_zone_title">Сеть похожа на среду с белыми списками</string>
+    <string name="home_summary_reason_whitelist_zone_message">Локальные контроли сработали, но несколько внешних или эталонно блокируемых целей оказались недоступны, что похоже на режим белых списков.</string>
+    <string name="home_summary_reason_whitelist_reference_blocked_title">Белый список не выявлен, но эталонные блокируемые цели недоступны</string>
+    <string name="home_summary_reason_whitelist_reference_blocked_message">Внешние проверки остались доступными, но хотя бы одна эталонно блокируемая цель оказалась недоступна, что больше похоже на обычную провайдерскую или сетевую фильтрацию, а не на режим белого списка.</string>
+    <string name="home_summary_reason_whitelist_inconclusive_title">Проверка белых списков осталась неоднозначной</string>
+    <string name="home_summary_reason_whitelist_inconclusive_message">Цели проверки белых списков дали смешанную картину, которой недостаточно для уверенного вывода.</string>
     <string name="home_summary_reason_websites_limited_title">Часть сайтов оказалась недоступна</string>
     <string name="home_summary_reason_websites_limited_message">Один или несколько проверенных сайтов не смогли нормально загрузиться, что может указывать на блокировку или более широкую проблему сети.</string>
     <string name="home_summary_reason_websites_unstable_title">Некоторые сайты вели себя нестабильно</string>
@@ -458,6 +468,8 @@
     <string name="home_protocol_title">@string/destination_protocol_analysis</string>
     <string name="home_report_export_subtitle">Создание и отправка диагностического отчёта</string>
     <string name="home_report_export_title">@string/destination_report_export</string>
+    <string name="home_whitelist_title">@string/destination_whitelist_zone_check</string>
+    <string name="home_whitelist_subtitle">Определение признаков сети, работающей по белым спискам</string>
     <string name="home_sni_status_filtering">@string/sni_status_filtering_short</string>
     <string name="home_sni_status_mitm">@string/sni_status_mitm_short</string>
     <string name="home_sni_status_tls_intercept">@string/sni_status_tls_intercept_short</string>
@@ -633,4 +645,37 @@
     <string name="observation_unusual_chain_summary">Одна или несколько конечных точек показали очень короткую цепочку сертификатов. Это может быть нормой, но стоит перепроверить, если другие TLS-сигналы тоже выглядят необычно.</string>
     <string name="observation_websocket_failed_title">Апгрейд WebSocket не удался при рабочем HTTPS</string>
     <string name="observation_websocket_failed_summary">Сеть пропускала обычный HTTPS-трафик, но апгрейд WebSocket не завершился. Это может указывать на прокси или фильтрацию на уровне приложения.</string>
+    <string name="whitelist_group_local_control_title">Локальный контроль</string>
+    <string name="whitelist_group_local_control_subtitle">Сервисы, которые ожидаемо работают во внутренней локальной среде</string>
+    <string name="whitelist_group_foreign_control_title">Внешний контроль</string>
+    <string name="whitelist_group_foreign_control_subtitle">Внешние проверки подключения, которые обычно доступны в открытой сети</string>
+    <string name="whitelist_group_blocked_reference_title">Эталон блокировки</string>
+    <string name="whitelist_group_blocked_reference_subtitle">Цели, которые часто фильтруются или ограничиваются в среде белых списков</string>
+    <string name="whitelist_description">Сравните локальные контроли, внешние контроли и эталонно блокируемые цели, чтобы понять, похожа ли сеть на среду, работающую по белым спискам.</string>
+    <string name="whitelist_run_check">Запустить проверку</string>
+    <string name="whitelist_summary_title">Последний вердикт</string>
+    <string name="whitelist_placeholder">Запустите проверку, чтобы понять, похожа ли эта сеть на среду с белыми списками.</string>
+    <string name="whitelist_results_title">Цели</string>
+    <string name="whitelist_results_subtitle">Группы локальных, внешних и эталонных целей помогают быстрее понять итоговый вердикт.</string>
+    <string name="whitelist_verdict_in_zone">В зоне белых списков</string>
+    <string name="whitelist_verdict_outside_zone">Вне зоны белых списков</string>
+    <string name="whitelist_verdict_no_whitelist_but_reference_blocked">Белый список не обнаружен, но эталонные блокировки наблюдаются</string>
+    <string name="whitelist_verdict_inconclusive">Неопределённо</string>
+    <string name="whitelist_verdict_in_zone_summary">Все локальные контроли сработали, при этом несколько внешних проверок завершились ошибкой и как минимум один эталон блокировки оказался недоступен.</string>
+    <string name="whitelist_verdict_outside_zone_summary">Локальные контроли и внешние проверки сработали, а эталонные блокируемые цели тоже были доступны.</string>
+    <string name="whitelist_verdict_no_whitelist_but_reference_blocked_summary">Белый список не обнаружен, но эталонно блокируемые цели недоступны. Вероятна обычная фильтрация со стороны провайдера, DNS, DPI или иной сетевой политики.</string>
+    <string name="whitelist_verdict_inconclusive_summary">Текущая картина не позволяет уверенно отличить сеть с белыми списками от обычного открытого подключения.</string>
+    <string name="whitelist_reason_local_ok">Локальные контроли доступны</string>
+    <string name="whitelist_reason_local_failed">Часть локальных контролей завершилась ошибкой</string>
+    <string name="whitelist_reason_foreign_blocked">Несколько внешних контролей недоступны</string>
+    <string name="whitelist_reason_foreign_reachable">Внешние контроли в основном доступны</string>
+    <string name="whitelist_reason_blocked_refs_unavailable">Эталонные блокируемые цели недоступны</string>
+    <string name="whitelist_reason_blocked_refs_reachable">Эталонные цели достижимы</string>
+    <string name="whitelist_target_accessible">Доступен</string>
+    <string name="whitelist_target_unavailable">Недоступен</string>
+    <string name="whitelist_diagnostics_details">Подробности диагностики</string>
+    <string name="whitelist_home_status_in_zone">В зоне белых списков</string>
+    <string name="whitelist_home_status_outside_zone">Не выявлено</string>
+    <string name="whitelist_home_status_reference_blocked">Вероятна фильтрация</string>
+    <string name="whitelist_home_status_inconclusive">Статус не определён</string>
 </resources>

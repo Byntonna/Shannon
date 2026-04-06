@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -12,7 +11,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
@@ -36,9 +34,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
@@ -62,6 +61,7 @@ import com.example.shannon.presentation.components.ReportExportScreen
 import com.example.shannon.presentation.components.SniMitmAnalysisScreen
 import com.example.shannon.presentation.components.TlsAnalysisScreen
 import com.example.shannon.presentation.components.TracerouteDiagnosticsScreen
+import com.example.shannon.presentation.components.WhitelistZoneCheckScreen
 import com.example.shannon.presentation.components.WebsiteAccessibilityScreen
 import com.example.shannon.domain.model.ConnectivityTargetPreset
 import com.example.shannon.domain.model.PortScanIpVersion
@@ -83,6 +83,7 @@ fun NetworkDiagnosticsScreen(
     onRunConnectivityTest: () -> Unit,
     onSelectTargetPreset: (ConnectivityTargetPreset) -> Unit,
     onRunWebsiteAccessibilityTest: () -> Unit,
+    onRunWhitelistZoneCheck: () -> Unit,
     onSelectWebsitePreset: (WebsiteAccessibilityPreset) -> Unit,
     onUpdateCustomWebsiteInput: (String) -> Unit,
     onAddCustomWebsiteTarget: () -> Unit,
@@ -110,20 +111,6 @@ fun NetworkDiagnosticsScreen(
     val previousScreen = remember { mutableStateOf(uiState.currentScreen) }
     val animateHomeChrome = previousScreen.value == uiState.currentScreen &&
         uiState.currentScreen == DiagnosticsDestination.Home
-    val titleCollapseFraction = if (uiState.currentScreen != DiagnosticsDestination.Home) {
-        0f
-    } else {
-        (homeScrollState.value / 180f).coerceIn(0f, 1f)
-    }
-    val animatedTitleCollapseFraction by animateFloatAsState(
-        targetValue = titleCollapseFraction,
-        animationSpec = if (animateHomeChrome) {
-            androidx.compose.animation.core.spring()
-        } else {
-            androidx.compose.animation.core.snap()
-        },
-        label = "home-title-collapse",
-    )
 
     SideEffect {
         previousScreen.value = uiState.currentScreen
@@ -140,7 +127,7 @@ fun NetworkDiagnosticsScreen(
         topBar = {
             DiagnosticsTopBar(
                 currentScreen = uiState.currentScreen,
-                titleCollapseFraction = animatedTitleCollapseFraction,
+                homeScrollState = homeScrollState,
                 animateHomeChrome = animateHomeChrome,
                 onNavigateBack = onNavigateBack,
             )
@@ -190,6 +177,9 @@ fun NetworkDiagnosticsScreen(
                     },
                     onOpenWebsiteAccessibility = {
                         onOpenScreen(DiagnosticsDestination.WebsiteAccessibility)
+                    },
+                    onOpenWhitelistZoneCheck = {
+                        onOpenScreen(DiagnosticsDestination.WhitelistZoneCheck)
                     },
                     onOpenAboutShannon = onOpenAboutShannon,
                 )
@@ -275,6 +265,9 @@ fun NetworkDiagnosticsScreen(
                         uiState.websiteAccessibilityResults.takeIf { it.isNotEmpty() }?.let {
                             stringResource(R.string.report_section_websites)
                         },
+                        uiState.whitelistZoneCheckResult?.let {
+                            stringResource(R.string.report_section_whitelist)
+                        },
                     ),
                     onExport = onExportReport,
                 )
@@ -289,6 +282,11 @@ fun NetworkDiagnosticsScreen(
                     onCustomInputChange = onUpdateCustomWebsiteInput,
                     onAddCustomTarget = onAddCustomWebsiteTarget,
                     onRemoveCustomTarget = onRemoveCustomWebsiteTarget,
+                )
+                DiagnosticsDestination.WhitelistZoneCheck -> WhitelistZoneCheckScreen(
+                    result = uiState.whitelistZoneCheckResult,
+                    isRunning = uiState.isRunningWhitelistZoneCheck,
+                    onRunCheck = onRunWhitelistZoneCheck,
                 )
                 DiagnosticsDestination.ConnectivityTest -> ConnectivityTestScreen(
                     selectedTargetPreset = uiState.selectedTargetPreset,
@@ -308,43 +306,23 @@ fun NetworkDiagnosticsScreen(
 @Composable
 private fun DiagnosticsTopBar(
     currentScreen: DiagnosticsDestination,
-    titleCollapseFraction: Float,
+    homeScrollState: androidx.compose.foundation.ScrollState,
     animateHomeChrome: Boolean,
     onNavigateBack: () -> Unit,
 ) {
     val isHome = currentScreen == DiagnosticsDestination.Home
-    val targetHeight = if (isHome) {
-        lerp(120.dp, 64.dp, titleCollapseFraction)
-    } else {
-        64.dp
+    val titleCollapseFraction by remember(currentScreen, homeScrollState) {
+        derivedStateOf {
+            if (currentScreen != DiagnosticsDestination.Home) {
+                0f
+            } else {
+                (homeScrollState.value / 180f).coerceIn(0f, 1f)
+            }
+        }
     }
-    val animatedHeight by animateDpAsState(
-        targetValue = targetHeight,
-        animationSpec = if (animateHomeChrome) {
-            androidx.compose.animation.core.spring()
-        } else {
-            androidx.compose.animation.core.snap()
-        },
-        label = "diagnostics-top-bar-height",
-    )
-    val subtitleAlpha by animateFloatAsState(
-        targetValue = if (isHome) 1f - titleCollapseFraction else 0f,
-        animationSpec = if (animateHomeChrome) {
-            androidx.compose.animation.core.spring()
-        } else {
-            androidx.compose.animation.core.snap()
-        },
-        label = "diagnostics-top-bar-subtitle-alpha",
-    )
-    val subtitleHeight by animateDpAsState(
-        targetValue = if (isHome) lerp(20.dp, 0.dp, titleCollapseFraction) else 0.dp,
-        animationSpec = if (animateHomeChrome) {
-            androidx.compose.animation.core.spring()
-        } else {
-            androidx.compose.animation.core.snap()
-        },
-        label = "diagnostics-top-bar-subtitle-height",
-    )
+    val targetHeight = if (isHome) lerp(120.dp, 64.dp, titleCollapseFraction) else 64.dp
+    val subtitleAlpha = if (isHome) 1f - titleCollapseFraction else 0f
+    val subtitleHeight = if (isHome) lerp(20.dp, 0.dp, titleCollapseFraction) else 0.dp
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -354,7 +332,7 @@ private fun DiagnosticsTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .height(animatedHeight)
+                .height(targetHeight)
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

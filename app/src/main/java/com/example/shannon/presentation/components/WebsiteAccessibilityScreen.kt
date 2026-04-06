@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -176,12 +175,16 @@ fun WebsiteAccessibilityScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onAddCustomTarget, enabled = !isRunning) {
-                    Text(context.getString(R.string.website_add_site))
-                }
-                Button(onClick = onRunTest, enabled = canRun) {
-                    Text(context.getString(if (isRunning) R.string.action_running else R.string.website_run_test))
-                }
+                DiagnosticPrimaryButton(
+                    text = context.getString(if (isRunning) R.string.action_running else R.string.website_run_test),
+                    onClick = onRunTest,
+                    enabled = canRun,
+                )
+                DiagnosticSecondaryButton(
+                    text = context.getString(R.string.website_add_site),
+                    onClick = onAddCustomTarget,
+                    enabled = !isRunning,
+                )
             }
         }
 
