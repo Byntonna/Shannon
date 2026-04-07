@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,117 +95,181 @@ fun DiagnosticsHomeScreen(
     onOpenAboutShannon: () -> Unit,
 ) {
     val context = LocalContext.current
-    val overviewGroup = listOf(
+    val lanIcon = ImageVector.vectorResource(R.drawable.ic_lan)
+    val wifiIcon = ImageVector.vectorResource(R.drawable.ic_wifi)
+    val internetIcon = ImageVector.vectorResource(R.drawable.ic_internet)
+    val whitelistIcon = ImageVector.vectorResource(R.drawable.ic_whitelist)
+    val dnsIcon = ImageVector.vectorResource(R.drawable.ic_dns)
+    val hubIcon = ImageVector.vectorResource(R.drawable.ic_hub)
+    val lockedIcon = ImageVector.vectorResource(R.drawable.ic_locked)
+    val sniIcon = ImageVector.vectorResource(R.drawable.ic_account_group)
+    val magnifyIcon = ImageVector.vectorResource(R.drawable.ic_magnify)
+    val pingIcon = ImageVector.vectorResource(R.drawable.ic_ping_pong)
+    val routesIcon = ImageVector.vectorResource(R.drawable.ic_routes)
+    val exportIcon = ImageVector.vectorResource(R.drawable.ic_export_variant)
+    val infoIcon = ImageVector.vectorResource(R.drawable.ic_information_outline)
+    val connectivityStatus = connectivityStatus(uiState)
+    val websiteStatus = websiteStatus(uiState)
+    val whitelistStatus = whitelistZoneStatus(uiState)
+    val dnsStatus = dnsStatus(uiState)
+    val tlsStatus = tlsStatus(uiState)
+    val sniStatus = sniStatus(uiState)
+    val portScanStatus = portScanStatus(uiState)
+    val pingStatus = pingStatus(uiState)
+    val tracerouteStatus = tracerouteStatus(uiState)
+
+    val overviewGroup = remember(context, onOpenOverview) {
+        listOf(
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_lan),
+            icon = lanIcon,
             iconBackground = IconBlue,
             title = context.getString(R.string.home_overview_title),
             subtitle = context.getString(R.string.home_overview_subtitle),
             onClick = onOpenOverview,
         ),
     )
-    val coreGroup = listOf(
+    }
+    val coreGroup = remember(
+        context,
+        connectivityStatus,
+        websiteStatus,
+        whitelistStatus,
+        dnsStatus,
+        tlsStatus,
+        sniStatus,
+        onOpenConnectivityTest,
+        onOpenWebsiteAccessibility,
+        onOpenWhitelistZoneCheck,
+        onOpenDnsAnalysis,
+        onOpenProtocolAnalysis,
+        onOpenTlsAnalysis,
+        onOpenSniMitmAnalysis,
+        wifiIcon,
+        internetIcon,
+        whitelistIcon,
+        dnsIcon,
+        hubIcon,
+        lockedIcon,
+        sniIcon,
+    ) {
+        listOf(
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_wifi),
+            icon = wifiIcon,
             iconBackground = IconPink,
             title = context.getString(R.string.home_connectivity_title),
             subtitle = context.getString(R.string.home_connectivity_subtitle),
-            status = connectivityStatus(uiState),
+            status = connectivityStatus,
             onClick = onOpenConnectivityTest,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_internet),
+            icon = internetIcon,
             iconBackground = IconPink,
             title = context.getString(R.string.home_websites_title),
             subtitle = context.getString(R.string.home_websites_subtitle),
-            status = websiteStatus(uiState),
+            status = websiteStatus,
             onClick = onOpenWebsiteAccessibility,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_whitelist),
+            icon = whitelistIcon,
             iconBackground = IconPink,
             title = context.getString(R.string.home_whitelist_title),
             subtitle = context.getString(R.string.home_whitelist_subtitle),
-            status = whitelistZoneStatus(uiState),
+            status = whitelistStatus,
             onClick = onOpenWhitelistZoneCheck,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_dns),
+            icon = dnsIcon,
             iconBackground = IconIndigo,
             title = context.getString(R.string.home_dns_title),
             subtitle = context.getString(R.string.home_dns_subtitle),
-            status = dnsStatus(uiState),
+            status = dnsStatus,
             onClick = onOpenDnsAnalysis,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_hub),
+            icon = hubIcon,
             iconBackground = IconPurple,
             title = context.getString(R.string.home_protocol_title),
             subtitle = context.getString(R.string.home_protocol_subtitle),
             onClick = onOpenProtocolAnalysis,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_locked),
+            icon = lockedIcon,
             iconBackground = IconPurple,
             title = context.getString(R.string.home_tls_title),
             subtitle = context.getString(R.string.home_tls_subtitle),
-            status = tlsStatus(uiState),
+            status = tlsStatus,
             onClick = onOpenTlsAnalysis,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_account_group),
+            icon = sniIcon,
             iconBackground = IconPurple,
             title = context.getString(R.string.home_sni_title),
             subtitle = context.getString(R.string.home_sni_subtitle),
-            status = sniStatus(uiState),
+            status = sniStatus,
             onClick = onOpenSniMitmAnalysis,
         ),
     )
-    val diagnosticsGroup = listOf(
+    }
+    val diagnosticsGroup = remember(
+        context,
+        portScanStatus,
+        pingStatus,
+        tracerouteStatus,
+        onOpenPortScan,
+        onOpenPingDiagnostics,
+        onOpenTracerouteDiagnostics,
+        magnifyIcon,
+        pingIcon,
+        routesIcon,
+    ) {
+        listOf(
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_magnify),
+            icon = magnifyIcon,
             iconBackground = IconPeach,
             title = context.getString(R.string.home_port_scan_title),
             subtitle = context.getString(R.string.home_port_scan_subtitle),
-            status = portScanStatus(uiState),
+            status = portScanStatus,
             onClick = onOpenPortScan,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_ping_pong),
+            icon = pingIcon,
             iconBackground = IconPeach,
             title = context.getString(R.string.home_ping_title),
             subtitle = context.getString(R.string.home_ping_subtitle),
-            status = pingStatus(uiState),
+            status = pingStatus,
             onClick = onOpenPingDiagnostics,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_routes),
+            icon = routesIcon,
             iconBackground = IconPeach,
             title = context.getString(R.string.home_traceroute_title),
             subtitle = context.getString(R.string.home_traceroute_subtitle),
-            status = tracerouteStatus(uiState),
+            status = tracerouteStatus,
             onClick = onOpenTracerouteDiagnostics,
         ),
     )
-    val utilityGroup = listOf(
+    }
+    val utilityGroup = remember(context, onOpenReportExport, onOpenAboutShannon, exportIcon, infoIcon) {
+        listOf(
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_export_variant),
+            icon = exportIcon,
             iconBackground = IconSage,
             title = context.getString(R.string.home_report_export_title),
             subtitle = context.getString(R.string.home_report_export_subtitle),
             onClick = onOpenReportExport,
         ),
         HomeMenuEntry(
-            icon = ImageVector.vectorResource(R.drawable.ic_information_outline),
+            icon = infoIcon,
             iconBackground = IconSage,
             title = context.getString(R.string.home_about_title),
             subtitle = context.getString(R.string.home_about_subtitle),
             onClick = onOpenAboutShannon,
         ),
     )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        val summary = uiState.homeSummaryState()
+        val summary = remember(uiState) { uiState.homeSummaryState() }
 
         Column(
             modifier = Modifier

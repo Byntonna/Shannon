@@ -33,14 +33,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -108,13 +107,6 @@ fun NetworkDiagnosticsScreen(
     onOpenAboutShannon: () -> Unit,
 ) {
     val homeScrollState = rememberScrollState()
-    val previousScreen = remember { mutableStateOf(uiState.currentScreen) }
-    val animateHomeChrome = previousScreen.value == uiState.currentScreen &&
-        uiState.currentScreen == DiagnosticsDestination.Home
-
-    SideEffect {
-        previousScreen.value = uiState.currentScreen
-    }
 
     BackHandler(enabled = uiState.currentScreen != DiagnosticsDestination.Home) {
         onNavigateBack()
@@ -128,7 +120,6 @@ fun NetworkDiagnosticsScreen(
             DiagnosticsTopBar(
                 currentScreen = uiState.currentScreen,
                 homeScrollState = homeScrollState,
-                animateHomeChrome = animateHomeChrome,
                 onNavigateBack = onNavigateBack,
             )
         },
@@ -307,7 +298,6 @@ fun NetworkDiagnosticsScreen(
 private fun DiagnosticsTopBar(
     currentScreen: DiagnosticsDestination,
     homeScrollState: androidx.compose.foundation.ScrollState,
-    animateHomeChrome: Boolean,
     onNavigateBack: () -> Unit,
 ) {
     val isHome = currentScreen == DiagnosticsDestination.Home
@@ -357,46 +347,55 @@ private fun DiagnosticsTopBar(
                 label = "diagnostics-top-bar-title-transition",
             ) { screen ->
                 if (screen == DiagnosticsDestination.Home) {
-                    val expandedTitleStyle = MaterialTheme.typography.headlineMedium
-                    val collapsedTitleStyle = MaterialTheme.typography.titleLarge
-                    val titleStyle = expandedTitleStyle.copy(
-                        fontSize = lerp(
-                            expandedTitleStyle.fontSize,
-                            collapsedTitleStyle.fontSize,
-                            titleCollapseFraction,
-                        ),
-                        lineHeight = lerp(
-                            expandedTitleStyle.lineHeight,
-                            collapsedTitleStyle.lineHeight,
-                            titleCollapseFraction,
-                        ),
+                    HomeTopBarTitle(
+                        titleCollapseFraction = titleCollapseFraction,
+                        subtitleAlpha = subtitleAlpha,
+                        subtitleHeight = subtitleHeight,
                     )
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Text(
-                            text = stringResource(screen.titleResId()),
-                            style = titleStyle,
-                        )
-                        Spacer(modifier = Modifier.height(lerp(2.dp, 0.dp, titleCollapseFraction)))
-                        if (subtitleHeight > 0.dp || subtitleAlpha > 0.01f) {
-                            Text(
-                                text = stringResource(R.string.top_bar_subtitle),
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                ),
-                                modifier = Modifier
-                                    .height(subtitleHeight)
-                                    .alpha(subtitleAlpha),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
-                    }
                 } else {
                     Text(stringResource(screen.titleResId()))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeTopBarTitle(
+    titleCollapseFraction: Float,
+    subtitleAlpha: Float,
+    subtitleHeight: Dp,
+) {
+    val expandedTitleStyle = MaterialTheme.typography.headlineMedium
+    val collapsedTitleStyle = MaterialTheme.typography.titleLarge
+    val collapsedScale = collapsedTitleStyle.fontSize.value / expandedTitleStyle.fontSize.value
+    val titleScale = 1f + ((collapsedScale - 1f) * titleCollapseFraction)
+
+    Column(
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(DiagnosticsDestination.Home.titleResId()),
+            style = expandedTitleStyle,
+            modifier = Modifier.graphicsLayer {
+                scaleX = titleScale
+                scaleY = titleScale
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+            },
+        )
+        Spacer(modifier = Modifier.height(lerp(2.dp, 0.dp, titleCollapseFraction)))
+        if (subtitleHeight > 0.dp || subtitleAlpha > 0.01f) {
+            Text(
+                text = stringResource(R.string.top_bar_subtitle),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium,
+                ),
+                modifier = Modifier
+                    .height(subtitleHeight)
+                    .alpha(subtitleAlpha),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }
